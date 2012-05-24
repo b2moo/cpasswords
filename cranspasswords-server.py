@@ -2,6 +2,9 @@
 # -*- encoding: utf-8 -*-
 """cranspasswords-server.py: Serveur pour cranspasswords"""
 
+MYDIR = '/home/dstan/crans/cranspasswords/'
+STORE = '/home/dstan/crans/passwords/v2/'
+
 import glob
 import os
 import pwd
@@ -15,7 +18,6 @@ if MYUID == 'root':
 KEYS = {
     "aza-vallina": ("Damien.Aza-Vallina@crans.org", None),
     "dandrimont": ("nicolas.dandrimont@crans.org", "66475AAF"),
-    "nicolasd": (None, None),
     "blockelet": ("blockelet@crans.org", "AF087A52"),
     "chambart": ("pierre.chambart@crans.org", "F2530FCE"),
     "dimino": ("jdimino@dptinfo.ens-cachan.fr", "2127F85A"),
@@ -25,7 +27,31 @@ KEYS = {
     "lagorce": ("xavier.lagorce@crans.org", "0BF3708E"),
     "parret-freaud": ("parret-freaud@crans.org", "7D980513"),
     "tvincent": ("vincent.thomas@crans.org", "C5C4ACC0"),
+    "iffrig": ("iffrig@crans.org","5BEC9A2F"),
+    "becue": ("becue@crans.org", "194974E2"),
+    "dstan": ("daniel.stan@crans.org", "6E1C820B"),
+    "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
+    "maioli": ("maioli@crans.org","9E5026E8")
     }
+
+RTC=[
+    "dandrimont",
+    "iffrig"
+    ]
+NOUNOUS=RTC+[
+    "blockelet",
+    "becue",
+    "dstan",
+    "chambart",
+    "dimino",
+    "durand-gasselin",
+    "glondu",
+    "huber",
+    "lagorce",
+    "parret-freaud",
+    "cauderlier",
+    "maioli"
+    ]
 
 ROLES = {
     "bureau": [
@@ -37,31 +63,19 @@ ROLES = {
         "durand-gasselin",
         "lagorce",
         ],
-    "rtc": [
-        "dandrimont",
-        "nicolasd",
-        ],
-    "nounou": [
-        "blockelet",
-        "chambart",
-        "dandrimont",
-        "dimino",
-        "durand-gasselin",
-        "glondu",
-        "huber",
-        "lagorce",
-        "parret-freaud",
-        "tvincent",
-        ],
+    "rtc": RTC,
+    "nounous": NOUNOUS,
+    "nounous-w": NOUNOUS #Or maybe RTC ?
     }
-    
-MYDIR = '/var/local/cranspasswords/'
-STORE = MYDIR + 'store/'
 
-def validate(roles):
-    """Valide que l'appelant appartient bien aux roles précisés"""
+
+def validate(roles,mode='r'):
+    """Valide que l'appelant appartient bien aux roles précisés
+    Si mode mode='w', recherche un rôle en écriture
+    """
     for role in roles:
-        if MYUID in ROLES[role]:
+        if mode == 'w': role+='-w'
+        if ROLES.has_key(role) and MYUID in ROLES[role]:
             return True
     return False
 
@@ -127,7 +141,7 @@ def putfile(filename):
     except TypeError:
         pass
     else:
-        if not validate(oldroles):
+        if not validate(oldroles,'w'):
             return False
     
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
@@ -140,7 +154,7 @@ def rmfile(filename):
     except TypeError:
         return True
     else:
-        if validate(roles):
+        if validate(roles,'w'):
             os.remove(getpath(filename))
         else:
             return False
