@@ -8,6 +8,7 @@ import json
 import tempfile
 import os
 import atexit
+import argparse
 
 ######
 ## GPG Definitions
@@ -20,8 +21,11 @@ GPG_ARGS = {
     'receive-keys': ['--recv-keys'],
     }
 
-DEBUG=False
-CLIPBOARD=False # Par défaut, place-t-on le mdp dans le presse-papier ?
+DEBUG = False
+VERB = False
+CLIPBOARD = False # Par défaut, place-t-on le mdp dans le presse-papier ?
+FORCED = False #Mode interactif qui demande confirmation
+NROLES = None     # Droits à définir sur le fichier en édition
 
 def gpg(command, args = None):
     """Lance gpg pour la commande donnée avec les arguments
@@ -30,7 +34,7 @@ def gpg(command, args = None):
     full_command.extend(GPG_ARGS[command])
     if args:
         full_command.extend(args)
-    if DEBUG:
+    if VERB:
         stderr=sys.stderr
     else:
         stderr=subprocess.PIPE
@@ -41,22 +45,23 @@ def gpg(command, args = None):
                             stdout = subprocess.PIPE,
                             stderr = stderr,
                             close_fds = True)
-    if not DEBUG:
+    if not VERB:
         proc.stderr.close()
     return proc.stdin, proc.stdout
 
 ######
 ## Remote commands
 
-SSH = '/usr/bin/ssh'
-SSH_HOST = 'localhost'
-REMOTE_COMMAND = ['/home/dstan/crans/cranspasswords/cranspasswords-server.py']
+SERVER_CMD_DEBUG = ['/usr/bin/ssh', 'localhost', \
+    '/home/dstan/crans/cranspasswords/cranspasswords-server.py']
+SERVER_CMD = ['/usr/bin/ssh', 'vo',\
+    '/home/dstan/cranspasswords/cranspasswords-server']
+USER = 'dstan'
 
 def ssh(command, arg = None):
     """Lance ssh avec les arguments donnés. Renvoie son entrée
     standard et sa sortie standard."""
-    full_command = [SSH, SSH_HOST]
-    full_command.extend(REMOTE_COMMAND)
+    full_command = list(SERVER_CMD)
     full_command.append(command)
     if arg:
         full_command.append(arg)
@@ -101,6 +106,11 @@ def rm_file(filename):
     """Supprime le fichier sur le serveur distant"""
     return remote_command("rmfile", filename)
 
+def get_my_roles():
+    """Retoure la liste des rôles perso"""
+    allr = all_roles()
+    return filter(lambda role: USER in allr[role],allr.keys())
+
 ######
 ## Local commands
 
@@ -120,13 +130,12 @@ def check_keys():
     for mail, key in keys.values():
         if key:
             _, stdout = gpg("fingerprint", [key])
-            if DEBUG:   print "Checking %s" % mail
+            if VERB:   print "Checking %s" % mail
             if str("<%s>" % mail.lower()) not in stdout.read().lower():
-                if DEBUG:   print "-->Fail on %s" % mail
+                if VERB:   print "-->Fail on %s" % mail
                 break
     else:
         return True
-
     return False
 
 def encrypt(roles, contents):
@@ -151,7 +160,7 @@ def encrypt(roles, contents):
     stdin.close()
     out = stdout.read()
     if out == '':
-        if DEBUG: print "Échec de chiffrement"
+        if VERB: print "Échec de chiffrement"
         return None
     else:
         return out
@@ -167,6 +176,8 @@ def put_password(name, roles, contents):
     """Dépose le mot de passe après l'avoir chiffré pour les
     destinataires donnés"""
     enc_pwd = encrypt(roles, contents)
+    if NROLES != None:
+        roles = NROLES
     if enc_pwd <> None:
         return put_file(name, roles, enc_pwd)
     else:
@@ -178,26 +189,6 @@ def get_password(name):
     return decrypt(remotefile['contents'])
 
 ## Interface
-def usage():
-    print """Cranspasswords 2 Usage:
- cranspasswords [options] [<filename>]
- cranspasswords <filename>      Télécharge le fichier
- cranspasswords                 Mode interactif
-
-Options:
- --view                     Télécharge le fichier
-# --upload                   Upload un nouveau fichier depuis stdin
- --edit                     Lance $EDITOR sur le fichier
-# --roles=<role1>,<role2>…   Définit les rôles
-# --roles+=<role>            Ajoute un rôle
-# --roles-=<role>            Supprime un rôle
-# --edit-roles               Lance $EDITOR sur les rôles
-# --rm                       Supprime le fichier
- --update-keys              Mets à jour les clés
- --check-keys               Vérifie les clés
- -l, --list                 Liste les fichiers disponibles
- --list-roles               Liste des rôles disponibles
- -c, --clipboard            mot de passe en presse papier"""
 
 def editor(texte):
     """ Lance $EDITOR sur texte"""
@@ -214,8 +205,12 @@ def editor(texte):
 
 def show_files():
     print """Liste des fichiers disponibles""" 
-    for fname in all_files():
-        print " * " + fname
+    my_roles = get_my_roles()
+    for (fname,froles) in all_files().iteritems():
+        access = set(my_roles).intersection(froles) != set([])
+        print " %s %s (%s)" % ((access and '+' or '-'),fname,", ".join(froles))
+    print """--Mes roles: %s""" % \
+        ", ".join(my_roles)
 
 def show_roles():
     print """Liste des roles disponibles""" 
@@ -254,7 +249,6 @@ def show_file(fname):
         print texte
     print "-----"
     print "Visible par: %s" % ','.join(value['roles'])
-    # Todo: some clipboard facility
         
 def edit_file(fname):
     value = get_file(fname)
@@ -272,31 +266,129 @@ def edit_file(fname):
             print "Modifications enregistrées"
         else:
             print "Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)"
-        
+
+def confirm(text):
+    if FORCED: return True
+    while True:
+        out = raw_input(text + ' (O/N)').lower()
+        if out == 'o':
+            return True
+        elif out == 'n':
+            return False
+
+def remove_file(fname):
+    if not confirm('Êtes-vous sûr de vouloir supprimer %s ?' % fname):
+        return
+    if rm_file(fname):
+        print "Suppression achevée"
+    else:
+        print "Erreur de suppression (avez-vous les droits ?)"
+    
+
+def my_check_keys():
+    check_keys() and "Base de clés ok" or "Erreurs dans la base"
+
+def my_update_keys():
+    print update_keys()
+
+def update_role(roles=None):
+    """ Reencode les fichiers, si roles est fourni,
+    contient une liste de rôles"""
+    my_roles = get_my_roles()
+    if roles == None:
+        # On ne conserve que les rôles qui finissent par -w
+        roles = [ r[:-2] for r in filter(lambda r: r.endswith('-w'),my_roles)]
+    if type(roles) != list:
+        roles = [roles]
+
+    for (fname,froles) in all_files().iteritems():
+        if set(roles).intersection(froles) == set([]):
+            continue
+        #if VERB:
+        print "Reencodage de %s" % fname
+        put_password(fname,froles,get_password(fname))
+
+def parse_roles(strroles):
+    if strroles == None: return None
+    roles = all_roles()
+    my_roles = filter(lambda r: USER in roles[r],roles.keys())
+    my_roles_w = [ r[:-2] for r in filter(lambda r: r.endswith('-w'),my_roles) ]
+    ret = set()
+    writable = False
+    for role in strroles.split(','):
+        if role not in roles.keys():
+            print("Le rôle %s n'existe pas !" % role)
+            return False
+        if role.endswith('-w'):
+            print("Le rôle %s ne devrait pas être utilisé ! (utilisez %s)"
+                % (role,role[:-2]))
+            return False
+        writable = writable or role in my_roles_w
+        ret.add(role)
+    
+    if not FORCED and not writable:
+        if not confirm("Vous vous apprêtez à perdre vos droits d'écritures (role ne contient pas %s) sur ce fichier, continuer ?" % ", ".join(my_roles_w)):
+            return False
+    return list(ret)
 
 if __name__ == "__main__":
-    argv = sys.argv[1:]
-    if '-c' in argv or '--clipboard' in argv:
-        CLIPBOARD=True
-    action = show_file
-    if '--edit' in argv:
-        action = edit_file
-    if '-v' in argv:    #Verbose !
-        DEBUG = True
-    for arg in argv:
-        if arg in ['--list','-l']:
-            show_files()
-        elif not arg.startswith('-'):
-            action(arg)
-        elif arg == '--check-keys':
-            print check_keys() and "Base de clés ok" or "Erreurs dans la base"
-        elif arg == '--update-keys':
-            print update_keys()
-        elif arg == '--list-roles':
-            show_roles()
-        elif arg in ['-c','--clipboard','--view','--edit','-v']:
-            pass
+    parser = argparse.ArgumentParser(description="trousseau crans")
+    parser.add_argument('--test',action='store_true',default=False,
+        help='Utilisation du serveur de test')
+    parser.add_argument('-v','--verbose',action='store_true',default=False,
+        help="Mode verbeux")
+    parser.add_argument('-c','--clipboard',action='store_true',default=False,
+        help="Stocker le mot de passe dans le presse papier")
+    parser.add_argument('-f','--force',action='store_true',default=False,
+        help="Forcer l'action")
+
+    # Actions possibles
+    action_grp = parser.add_mutually_exclusive_group(required=False)
+    action_grp.add_argument('--edit',action='store_const',dest='action',
+        default=show_file,const=edit_file,
+        help="Editer")
+    action_grp.add_argument('--view',action='store_const',dest='action',
+        default=show_file,const=show_file,
+        help="Voir")
+    action_grp.add_argument('--remove',action='store_const',dest='action',
+        default=show_file,const=remove_file,
+        help="Effacer")
+    action_grp.add_argument('-l','--list',action='store_const',dest='action',
+        default=show_file,const=show_files,
+        help="Lister les fichiers")
+    action_grp.add_argument('--check-keys',action='store_const',dest='action',
+        default=show_file,const=my_check_keys,
+        help="Vérifier les clés")
+    action_grp.add_argument('--update-keys',action='store_const',dest='action',
+        default=show_file,const=my_update_keys,
+        help="Mettre à jour les clés")
+    action_grp.add_argument('--list-roles',action='store_const',dest='action',
+        default=show_file,const=show_roles,
+        help="Lister les rôles des gens")
+    action_grp.add_argument('--recrypt-role',action='store_const',dest='action',
+        default=show_file,const=update_role,
+        help="Met à jour (reencode les roles)")
+
+    parser.add_argument('--roles',nargs='?',default=None,
+        help="liste des roles à affecter au fichier")
+    parser.add_argument('fname',nargs='?',default=None,
+        help="Nom du fichier à afficher")
+
+    parsed = parser.parse_args(sys.argv[1:])
+    DEBUG = parsed.test
+    if DEBUG:
+       SERVER_CMD = SERVER_CMD_DEBUG 
+    VERB = parsed.verbose
+    CLIPBOARD = parsed.clipboard
+    FORCED = parsed.force
+    NROLES = parse_roles(parsed.roles)
+
+    if NROLES != False:
+        if parsed.action.func_code.co_argcount == 0:
+            parsed.action()
+        elif parsed.fname == None:
+            print("Vous devez fournir un nom de fichier avec cette commande")
+            parser.print_help()
         else:
-            usage()
-            break
+            parsed.action(parsed.fname)
 

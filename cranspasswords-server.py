@@ -2,8 +2,8 @@
 # -*- encoding: utf-8 -*-
 """cranspasswords-server.py: Serveur pour cranspasswords"""
 
-MYDIR = '/home/dstan/crans/cranspasswords/'
-STORE = '/home/dstan/crans/passwords/v2/'
+MYDIR = '/home/dstan/cranspasswords/'
+STORE = MYDIR+'test/'
 
 import glob
 import os
@@ -31,7 +31,7 @@ KEYS = {
     "becue": ("becue@crans.org", "194974E2"),
     "dstan": ("daniel.stan@crans.org", "6E1C820B"),
     "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
-    "maioli": ("maioli@crans.org","9E5026E8")
+    "maioli": ("maioli@crans.org",None)             #Bis (maybe 9E5026E8)
     }
 
 RTC=[
@@ -54,15 +54,8 @@ NOUNOUS=RTC+[
     ]
 
 ROLES = {
-    "bureau": [
-        "aza-vallina",
-        ],
-    "ca": [
-        "aza-vallina",
-        "blockelet",
-        "durand-gasselin",
-        "lagorce",
-        ],
+    "bureau": [],
+    "ca": [],
     "rtc": RTC,
     "nounous": NOUNOUS,
     "nounous-w": NOUNOUS #Or maybe RTC ?
