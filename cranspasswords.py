@@ -252,14 +252,21 @@ def show_file(fname):
         
 def edit_file(fname):
     value = get_file(fname)
+    nfile = False
     if value == False:
-        print "Fichier introuvable"; return
-    (sin,sout) = gpg('decrypt')
-    sin.write(value['contents'])
-    sin.close()
-    texte = sout.read()
+        nfile = True
+        print "Fichier introuvable"
+        if not confirm("Créer fichier ?"):
+            return
+        texte = ""
+        value = {'roles':get_my_roles()}
+    else:
+        (sin,sout) = gpg('decrypt')
+        sin.write(value['contents'])
+        sin.close()
+        texte = sout.read()
     ntexte = editor(texte)
-    if ntexte == None:
+    if ntexte == None and not nfile and NROLES != None:
         print "Pas de modifications effectuées"
     else:
         if put_password(fname,value['roles'],ntexte):
@@ -346,7 +353,7 @@ if __name__ == "__main__":
     action_grp = parser.add_mutually_exclusive_group(required=False)
     action_grp.add_argument('--edit',action='store_const',dest='action',
         default=show_file,const=edit_file,
-        help="Editer")
+        help="Editer (ou créer)")
     action_grp.add_argument('--view',action='store_const',dest='action',
         default=show_file,const=show_file,
         help="Voir")
