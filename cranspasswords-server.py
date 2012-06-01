@@ -10,10 +10,16 @@ import os
 import pwd
 import sys
 import json
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 MYUID = pwd.getpwuid(os.getuid())[0]
 if MYUID == 'root':
     MYUID = os.environ['SUDO_USER']
+
+CRANSP_MAIL = "root@crans.org"
+DEST_MAIL = "dstan@crans.org"
 
 KEYS = {
     "aza-vallina": ("Damien.Aza-Vallina@crans.org", None),
@@ -31,6 +37,7 @@ KEYS = {
     "becue": ("becue@crans.org", "194974E2"),
     "dstan": ("daniel.stan@crans.org", "6E1C820B"),
     "samir": ("samir@crans.org", "41C2B76B"),
+    "boilard": ("boilard@crans.org", "C39EB6F4"),
     "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
     "maioli": ("maioli@crans.org",None)             #Bis (maybe 9E5026E8)
     }
@@ -52,13 +59,15 @@ NOUNOUS=RTC+[
     "parret-freaud",
     "cauderlier",
     "maioli",
-    "samir"
+    "samir",
+    "boilard"
     ]
 
+CA=["becue","dstan","boilard"]
+
 ROLES = {
-    "bureau": [],
-    "ca": [],
-    "rtc": RTC,
+    "ca": CA,
+    "ca-w": CA,
     "nounous": NOUNOUS,
     "nounous-w": NOUNOUS #Or maybe RTC ?
     }
@@ -132,28 +141,59 @@ def putfile(filename):
         return False
 
     try:
-        oldroles = getfile(filename)['roles']
+        old = getfile(filename)
+        oldroles = old['roles']
     except TypeError:
+        old = "//Nouveau fichier"
         pass
     else:
         if not validate(oldroles,'w'):
             return False
     
+    notification("Modification de %s" % filename,\
+    "Le fichier %s a été modifié par %s." %\
+        (filename,MYUID),filename,str(old))
+
+
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
     return True
 
 def rmfile(filename):
     """Supprime le fichier filename après avoir vérifié les droits sur le fichier"""
     try:
-        roles = getfile(filename)['roles']
+        old = getfile(filename)
+        roles = old['roles']
     except TypeError:
         return True
     else:
         if validate(roles,'w'):
+            notification("Suppression de %s" % filename,\
+                "Le fichier %s a été supprimé par %s." %\
+                (filename,MYUID),filename,str(old))
             os.remove(getpath(filename))
         else:
             return False
     return True
+
+def notification(subject,corps,fname,old):
+    conn = smtplib.SMTP('localhost')
+    frommail = CRANSP_MAIL
+    tomail = DEST_MAIL
+    msg = MIMEMultipart(_charset="utf-8")
+    msg['Subject'] = subject
+    # me == the sender's email address
+    # family = the list of all recipients' email addresses
+    msg['From'] = "cranspasswords <%s>" % CRANSP_MAIL
+    msg['To'] = DEST_MAIL
+    msg.preamble = "cranspasswords report"
+    info = MIMEText(corps + #"\nCi-joint l'ancien fichier." +
+        "\n\n-- \nCranspasswords.py",_charset="utf-8")
+    msg.attach(info)
+    #old = MIMEText(old)
+    #old.add_header('Content-Disposition', 'attachment', filename=fname) 
+    #msg.attach(old)
+    conn.sendmail(frommail,tomail,msg.as_string())
+    conn.quit()
 
 if __name__ == "__main__":
     argv = sys.argv[1:]
