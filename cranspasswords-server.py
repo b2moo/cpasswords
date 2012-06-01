@@ -30,6 +30,7 @@ KEYS = {
     "iffrig": ("iffrig@crans.org","5BEC9A2F"),
     "becue": ("becue@crans.org", "194974E2"),
     "dstan": ("daniel.stan@crans.org", "6E1C820B"),
+    "samir": ("samir@crans.org", "41C2B76B"),
     "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
     "maioli": ("maioli@crans.org",None)             #Bis (maybe 9E5026E8)
     }
@@ -50,7 +51,8 @@ NOUNOUS=RTC+[
     "lagorce",
     "parret-freaud",
     "cauderlier",
-    "maioli"
+    "maioli",
+    "samir"
     ]
 
 ROLES = {
