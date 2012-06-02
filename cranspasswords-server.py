@@ -2,8 +2,8 @@
 # -*- encoding: utf-8 -*-
 """cranspasswords-server.py: Serveur pour cranspasswords"""
 
-MYDIR = '/home/dstan/cranspasswords/'
-STORE = MYDIR+'test/'
+MYDIR = '/root/cranspasswords/'
+STORE = MYDIR+'db/'
 
 import glob
 import os
@@ -43,7 +43,6 @@ KEYS = {
     }
 
 RTC=[
-    "dandrimont",
     "iffrig"
     ]
 NOUNOUS=RTC+[
@@ -69,7 +68,7 @@ ROLES = {
     "ca": CA,
     "ca-w": CA,
     "nounous": NOUNOUS,
-    "nounous-w": NOUNOUS #Or maybe RTC ?
+    "nounous-w": RTC
     }
 
 
@@ -121,7 +120,10 @@ def getfile(filename):
 
     filepath = getpath(filename)
     try:
-        return json.loads(open(filepath).read())
+        obj = json.loads(open(filepath).read())
+        if not validate(obj['roles']):
+	        return False
+        return obj
     except IOError:
         return False
      
