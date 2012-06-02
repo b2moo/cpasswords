@@ -262,7 +262,7 @@ def edit_file(fname):
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
         # créateur
-        roles = [ r[:-2] for r in filter(lamba r: r.endswith('-w'),roles)]
+        roles = [ r[:-2] for r in filter(lambda r: r.endswith('-w'),roles)]
         if roles == []:
             print "Vous ne possédez aucun rôle en écriture ! Abandon."
             return
