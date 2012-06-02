@@ -204,13 +204,18 @@ def editor(texte):
     return texte <> ntexte and ntexte or None
 
 def show_files():
-    print """Liste des fichiers disponibles""" 
+    proc = subprocess.Popen("less",stdin=subprocess.PIPE,shell=True)
+    out = proc.stdin
+    out.write("""Liste des fichiers disponibles\n""" )
     my_roles = get_my_roles()
     for (fname,froles) in all_files().iteritems():
         access = set(my_roles).intersection(froles) != set([])
-        print " %s %s (%s)" % ((access and '+' or '-'),fname,", ".join(froles))
-    print """--Mes roles: %s""" % \
-        ", ".join(my_roles)
+        out.write(" %s %s (%s)\n" % ((access and '+' or '-'),fname,", ".join(froles)))
+    out.write("""--Mes roles: %s\n""" % \
+        ", ".join(my_roles))
+    
+    out.close()
+    os.waitpid(proc.pid,0)
 
 def show_roles():
     print """Liste des roles disponibles""" 
@@ -223,32 +228,35 @@ def clipboard(texte):
         stdin=subprocess.PIPE,stdout=sys.stdout,stderr=sys.stderr)
     proc.stdin.write(texte)
     proc.stdin.close()
-    print "[Le mot de passe a été mis dans le presse papier]"
+    return "[Le mot de passe a été mis dans le presse papier]"
 
 
 def show_file(fname):
     value = get_file(fname)
     if value == False:
         print "Fichier introuvable"; return
-    print "Fichier %s:" % fname
+    proc = subprocess.Popen("less",stdin=subprocess.PIPE,shell=True)
+    out = proc.stdin
+    out.write("Fichier %s:\n\n" % fname)
     (sin,sout) = gpg('decrypt')
     sin.write(value['contents'])
     sin.close()
-    texte = sout.read()
     if CLIPBOARD:    # Ça ne va pas plaire à tout le monde
+        texte = sout.read()
         lines = texte.split('\n')
-        if len(lines) == 2:
-            clipboard(lines[0])
-        else:
-            for line in lines:
-                if line.startswith('pass:'):
-                    clipboard(line[5:].strip(' \t\r\n'))
-                else:
-                    print line
-    else:
-        print texte
-    print "-----"
-    print "Visible par: %s" % ','.join(value['roles'])
+        for line in lines:
+            if line.startswith('pass:'):
+                out.write(clipboard(line[5:].strip(' \t\r\n')) + '\n')
+            else:
+                out.write(line+'\n')
+    else:  # Si pas de presse papier, on fait passer ça dans un less
+        out.write(sout.read())
+    out.write("-----\n")
+    out.write("Visible par: %s\n" % ','.join(value['roles']))
+
+    out.close()
+    os.waitpid(proc.pid,0)
+
         
 def edit_file(fname):
     value = get_file(fname)
