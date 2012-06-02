@@ -52,11 +52,15 @@ def gpg(command, args = None):
 ######
 ## Remote commands
 
-SERVER_CMD_DEBUG = ['/usr/bin/ssh', 'localhost', \
+SERVER_CMD_DEBUG2 = ['/usr/bin/ssh', 'localhost', \
     '/home/dstan/crans/cranspasswords/cranspasswords-server.py']
-SERVER_CMD = ['/usr/bin/ssh', 'vo',\
+SERVER_CMD_DEBUG = ['/usr/bin/ssh', 'vo',\
     '/home/dstan/cranspasswords/cranspasswords-server']
-USER = 'dstan'
+SERVER_CMD = ['/usr/bin/ssh', 'vert.adm.crans.org',\
+    '/root/cranspasswords/cranspasswords-server']
+#USER = 'dstan'
+USER = os.getenv('USER')  # À définir à la main pour les personnes
+# n'ayant pas le même login sur leur pc
 
 def ssh(command, arg = None):
     """Lance ssh avec les arguments donnés. Renvoie son entrée
