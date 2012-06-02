@@ -259,14 +259,21 @@ def edit_file(fname):
         if not confirm("Créer fichier ?"):
             return
         texte = ""
-        value = {'roles':get_my_roles()}
+        roles = get_my_roles()
+        # Par défaut les roles d'un fichier sont ceux en écriture de son
+        # créateur
+        roles = [ r[:-2] for r in filter(lamba r: r.endswith('-w'),roles)]
+        if roles == []:
+            print "Vous ne possédez aucun rôle en écriture ! Abandon."
+            return
+        value = {'roles':roles}
     else:
         (sin,sout) = gpg('decrypt')
         sin.write(value['contents'])
         sin.close()
         texte = sout.read()
     ntexte = editor(texte)
-    if ntexte == None and not nfile and NROLES != None:
+    if ntexte == None and not nfile and NROLES == None:
         print "Pas de modifications effectuées"
     else:
         if put_password(fname,value['roles'],ntexte):
