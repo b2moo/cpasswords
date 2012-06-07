@@ -274,7 +274,7 @@ def edit_file(fname):
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
         # créateur
-        roles = [ r[:-2] for r in filter(lambda r: r.endswith('-w'),roles)]
+        roles = [ r[:-2] for r in roles if r.endswith('-w') ]
         if roles == []:
             print "Vous ne possédez aucun rôle en écriture ! Abandon."
             return
@@ -323,7 +323,7 @@ def update_role(roles=None):
     my_roles = get_my_roles()
     if roles == None:
         # On ne conserve que les rôles qui finissent par -w
-        roles = [ r[:-2] for r in filter(lambda r: r.endswith('-w'),my_roles)]
+        roles = [ r[:-2] for r in my_roles if r.endswith('-w')]
     if type(roles) != list:
         roles = [roles]
 
@@ -338,7 +338,7 @@ def parse_roles(strroles):
     if strroles == None: return None
     roles = all_roles()
     my_roles = filter(lambda r: USER in roles[r],roles.keys())
-    my_roles_w = [ r[:-2] for r in filter(lambda r: r.endswith('-w'),my_roles) ]
+    my_roles_w = [ r[:-2] for r in my_roles if r.endswith('-w') ]
     ret = set()
     writable = False
     for role in strroles.split(','):
