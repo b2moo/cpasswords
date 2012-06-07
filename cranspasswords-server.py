@@ -19,7 +19,7 @@ if MYUID == 'root':
     MYUID = os.environ['SUDO_USER']
 
 CRANSP_MAIL = "root@crans.org"
-DEST_MAIL = "dstan@crans.org"
+DEST_MAIL = "root@crans.org"
 
 KEYS = {
     "aza-vallina": ("Damien.Aza-Vallina@crans.org", None),
