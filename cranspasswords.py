@@ -9,6 +9,7 @@ import tempfile
 import os
 import atexit
 import argparse
+import config
 
 ######
 ## GPG Definitions
@@ -26,6 +27,7 @@ VERB = False
 CLIPBOARD = False # Par défaut, place-t-on le mdp dans le presse-papier ?
 FORCED = False #Mode interactif qui demande confirmation
 NROLES = None     # Droits à définir sur le fichier en édition
+SERVER = None
 
 def gpg(command, args = None):
     """Lance gpg pour la commande donnée avec les arguments
@@ -52,20 +54,11 @@ def gpg(command, args = None):
 ######
 ## Remote commands
 
-SERVER_CMD_DEBUG2 = ['/usr/bin/ssh', 'localhost', \
-    '/home/dstan/crans/cranspasswords/cranspasswords-server.py']
-SERVER_CMD_DEBUG = ['/usr/bin/ssh', 'vo',\
-    '/home/dstan/cranspasswords/cranspasswords-server']
-SERVER_CMD = ['/usr/bin/ssh', 'vert.adm.crans.org',\
-    '/root/cranspasswords/cranspasswords-server']
-#USER = 'dstan'
-USER = os.getenv('USER')  # À définir à la main pour les personnes
-# n'ayant pas le même login sur leur pc
 
 def ssh(command, arg = None):
     """Lance ssh avec les arguments donnés. Renvoie son entrée
     standard et sa sortie standard."""
-    full_command = list(SERVER_CMD)
+    full_command = list(SERVER['server_cmd'])
     full_command.append(command)
     if arg:
         full_command.append(arg)
@@ -113,7 +106,7 @@ def rm_file(filename):
 def get_my_roles():
     """Retoure la liste des rôles perso"""
     allr = all_roles()
-    return filter(lambda role: USER in allr[role],allr.keys())
+    return filter(lambda role: SERVER['user'] in allr[role],allr.keys())
 
 ######
 ## Local commands
@@ -337,7 +330,7 @@ def update_role(roles=None):
 def parse_roles(strroles):
     if strroles == None: return None
     roles = all_roles()
-    my_roles = filter(lambda r: USER in roles[r],roles.keys())
+    my_roles = filter(lambda r: SERVER['user'] in roles[r],roles.keys())
     my_roles_w = [ r[:-2] for r in my_roles if r.endswith('-w') ]
     ret = set()
     writable = False
@@ -359,8 +352,8 @@ def parse_roles(strroles):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="trousseau crans")
-    parser.add_argument('--test',action='store_true',default=False,
-        help='Utilisation du serveur de test')
+    parser.add_argument('--server',default='default',
+        help='Utilisation d\'un serveur alternatif (test, etc)')
     parser.add_argument('-v','--verbose',action='store_true',default=False,
         help="Mode verbeux")
     parser.add_argument('-c','--clipboard',action='store_true',default=False,
@@ -401,13 +394,12 @@ if __name__ == "__main__":
         help="Nom du fichier à afficher")
 
     parsed = parser.parse_args(sys.argv[1:])
-    DEBUG = parsed.test
-    if DEBUG:
-       SERVER_CMD = SERVER_CMD_DEBUG 
     VERB = parsed.verbose
+    DEBUG = VERB
     CLIPBOARD = parsed.clipboard
     FORCED = parsed.force
     NROLES = parse_roles(parsed.roles)
+    SERVER = config.servers[parsed.server]
 
     if NROLES != False:
         if parsed.action.func_code.co_argcount == 0:

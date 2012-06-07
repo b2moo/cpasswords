@@ -4,6 +4,9 @@
 import os
 
 servers = {
+    'perso': {
+        'server_cmd' : [ '/home/dstan/passwords/cranspasswords/cranspasswords-server.py'],
+        'user' : 'dstan' },
     'debug': {
         'server_cmd' : ['/usr/bin/ssh', 'localhost', \
             '/home/dstan/crans/cranspasswords/cranspasswords-server.py'],
