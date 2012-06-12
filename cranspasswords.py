@@ -220,7 +220,24 @@ def show_roles():
         if role.endswith('-w'): continue
         print " * " + role 
 
+old_clipboard = None
+def saveclipboard(restore=False):
+    global old_clipboard
+    if restore and old_clipboard == None:
+        return
+    act = '-in' if restore else '-out'
+    proc =subprocess.Popen(['xclip',act,'-selection','clipboard'],\
+        stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=sys.stderr)
+    if not restore:
+        old_clipboard = proc.stdout.read()
+    else:
+        raw_input("Appuyez sur une touche pour récupérer le contenu précédent du presse papier.")
+        proc.stdin.write(old_clipboard)
+    proc.stdin.close()
+    proc.stdout.close()
+
 def clipboard(texte):
+    saveclipboard()
     proc =subprocess.Popen(['xclip','-selection','clipboard'],\
         stdin=subprocess.PIPE,stdout=sys.stdout,stderr=sys.stderr)
     proc.stdin.write(texte)
@@ -409,4 +426,6 @@ if __name__ == "__main__":
             parser.print_help()
         else:
             parsed.action(parsed.fname)
+    
+    saveclipboard(restore=True)
 
