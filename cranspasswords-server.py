@@ -11,6 +11,7 @@ import pwd
 import sys
 import json
 import smtplib
+import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -82,9 +83,9 @@ def validate(roles,mode='r'):
             return True
     return False
 
-def getpath(filename):
+def getpath(filename,backup=False):
     """Récupère le chemin du fichier `filename'"""
-    return os.path.join(STORE, '%s.json' % filename)
+    return os.path.join(STORE, '%s.%s' % (filename,'bak' if backup else 'json'))
 
 def writefile(filename, contents):
     """Écrit le fichier de manière sécure"""
@@ -146,7 +147,7 @@ def putfile(filename):
         old = getfile(filename)
         oldroles = old['roles']
     except TypeError:
-        old = "//Nouveau fichier"
+        old = "[Création du fichier]"
         pass
     else:
         if not validate(oldroles,'w'):
@@ -154,7 +155,7 @@ def putfile(filename):
     
     notification("Modification de %s" % filename,\
     "Le fichier %s a été modifié par %s." %\
-        (filename,MYUID),filename,str(old))
+        (filename,MYUID),filename,old)
 
 
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
@@ -171,13 +172,20 @@ def rmfile(filename):
         if validate(roles,'w'):
             notification("Suppression de %s" % filename,\
                 "Le fichier %s a été supprimé par %s." %\
-                (filename,MYUID),filename,str(old))
+                (filename,MYUID),filename,old)
             os.remove(getpath(filename))
         else:
             return False
     return True
 
 def notification(subject,corps,fname,old):
+    back = open(getpath(fname,True),'a')
+    back.write(json.dumps(old))
+    back.write('\n')
+    back.write('* %s: %s\n' % (str(datetime.datetime.now()),corps)) 
+    back.close()
+
+    # Puis envoi du message
     conn = smtplib.SMTP('localhost')
     frommail = CRANSP_MAIL
     tomail = DEST_MAIL
@@ -188,12 +196,14 @@ def notification(subject,corps,fname,old):
     msg['From'] = "cranspasswords <%s>" % CRANSP_MAIL
     msg['To'] = DEST_MAIL
     msg.preamble = "cranspasswords report"
-    info = MIMEText(corps + #"\nCi-joint l'ancien fichier." +
+    info = MIMEText(corps + 
+        "\nLa précédente version a été sauvegardée" +
+        #"\nCi-joint l'ancien fichier." +
         "\n\n-- \nCranspasswords.py",_charset="utf-8")
     msg.attach(info)
     #old = MIMEText(old)
     #old.add_header('Content-Disposition', 'attachment', filename=fname) 
-    #msg.attach(old)
+    #msg.attach(str(old))
     conn.sendmail(frommail,tomail,msg.as_string())
     conn.quit()
 
