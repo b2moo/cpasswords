@@ -69,7 +69,7 @@ ROLES = {
     "ca": CA,
     "ca-w": CA,
     "nounous": NOUNOUS,
-    "nounous-w": RTC
+    "nounous-w": NOUNOUS,
     }
 
 
