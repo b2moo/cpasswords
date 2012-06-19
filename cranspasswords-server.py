@@ -195,7 +195,7 @@ def notification(subject,corps,fname,old):
     msg['To'] = DEST_MAIL
     msg.preamble = "cranspasswords report"
     info = MIMEText(corps + 
-        "\nLa précédente version a été sauvegardée" +
+        "\nLa version précédente a été sauvegardée." +
         #"\nCi-joint l'ancien fichier." +
         "\n\n-- \nCranspasswords.py",_charset="utf-8")
     msg.attach(info)
