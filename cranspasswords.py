@@ -298,6 +298,7 @@ def edit_file(fname):
     if ntexte == None and not nfile and NROLES == None:
         print "Pas de modifications effectuées"
     else:
+        ntexte = texte if ntexte == None else ntexte
         if put_password(fname,value['roles'],ntexte):
             print "Modifications enregistrées"
         else:
