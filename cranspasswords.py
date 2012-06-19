@@ -411,12 +411,12 @@ if __name__ == "__main__":
         help="Nom du fichier à afficher")
 
     parsed = parser.parse_args(sys.argv[1:])
+    SERVER = config.servers[parsed.server]
     VERB = parsed.verbose
     DEBUG = VERB
     CLIPBOARD = parsed.clipboard
     FORCED = parsed.force
     NROLES = parse_roles(parsed.roles)
-    SERVER = config.servers[parsed.server]
 
     if NROLES != False:
         if parsed.action.func_code.co_argcount == 0:
