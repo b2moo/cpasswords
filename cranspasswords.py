@@ -9,7 +9,12 @@ import tempfile
 import os
 import atexit
 import argparse
+import re
 import config
+
+## Password pattern in files:
+PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$', \
+        flags=re.IGNORECASE)
 
 ######
 ## GPG Definitions
@@ -175,6 +180,8 @@ def put_password(name, roles, contents):
     enc_pwd = encrypt(roles, contents)
     if NROLES != None:
         roles = NROLES
+        if VERB:
+            print "Pas de nouveaux rôles"
     if enc_pwd <> None:
         return put_file(name, roles, enc_pwd)
     else:
@@ -201,7 +208,7 @@ def editor(texte):
     return texte <> ntexte and ntexte or None
 
 def show_files():
-    proc = subprocess.Popen("less",stdin=subprocess.PIPE,shell=True)
+    proc = subprocess.Popen("cat",stdin=subprocess.PIPE,shell=True)
     out = proc.stdin
     out.write("""Liste des fichiers disponibles\n""" )
     my_roles = get_my_roles()
@@ -248,28 +255,30 @@ def clipboard(texte):
 def show_file(fname):
     value = get_file(fname)
     if value == False:
-        print "Fichier introuvable"; return
-    proc = subprocess.Popen("less",stdin=subprocess.PIPE,shell=True)
-    out = proc.stdin
-    out.write("Fichier %s:\n\n" % fname)
+        print "Fichier introuvable"
+        return
     (sin,sout) = gpg('decrypt')
     sin.write(value['contents'])
     sin.close()
-    if CLIPBOARD:    # Ça ne va pas plaire à tout le monde
-        texte = sout.read()
-        lines = texte.split('\n')
-        for line in lines:
-            if line.startswith('pass:'):
-                out.write(clipboard(line[5:].strip(' \t\r\n')) + '\n')
-            else:
-                out.write(line+'\n')
-    else:  # Si pas de presse papier, on fait passer ça dans un less
-        out.write(sout.read())
+    texte = sout.read()
+    ntexte = ""
+    hidden = False  # Est-ce que le mot de passe a été caché ?
+    lines = texte.split('\n')
+    for line in lines:
+        catchPass = PASS.match(line)
+        if catchPass != None and CLIPBOARD:
+            hidden=True
+            line = clipboard(catchPass.group(1))
+        ntexte += line + '\n'
+    showbin = "cat" if hidden else "less"
+    proc = subprocess.Popen(showbin, stdin=subprocess.PIPE, shell=True)
+    out = proc.stdin
+    out.write("Fichier %s:\n\n" % fname)
+    out.write(ntexte)
     out.write("-----\n")
     out.write("Visible par: %s\n" % ','.join(value['roles']))
-
     out.close()
-    os.waitpid(proc.pid,0)
+    os.waitpid(proc.pid, 0)
 
         
 def edit_file(fname):
