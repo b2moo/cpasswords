@@ -40,7 +40,8 @@ KEYS = {
     "samir": ("samir@crans.org", "41C2B76B"),
     "boilard": ("boilard@crans.org", "C39EB6F4"),
     "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
-    "maioli": ("maioli@crans.org",None)             #Bis (maybe 9E5026E8)
+    "maioli": ("maioli@crans.org",None),             #Bis (maybe 9E5026E8)
+    "legallic": ("legallic@crans.org", "3784CFC3"),
     }
 
 RTC=[
@@ -60,10 +61,11 @@ NOUNOUS=RTC+[
     "cauderlier",
     "maioli",
     "samir",
-    "boilard"
+    "boilard",
+    "legallic",
     ]
 
-CA=["becue","dstan","boilard"]
+CA=[]
 
 ROLES = {
     "ca": CA,
