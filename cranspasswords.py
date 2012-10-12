@@ -337,7 +337,8 @@ def my_check_keys():
 def my_update_keys():
     print update_keys()
 
-def update_role(roles=None):
+def update_role():
+    roles = None
     """ Reencode les fichiers, si roles est fourni,
     contient une liste de rôles"""
     my_roles = get_my_roles()
@@ -373,7 +374,9 @@ def parse_roles(strroles):
         ret.add(role)
     
     if not FORCED and not writable:
-        if not confirm("Vous vous apprêtez à perdre vos droits d'écritures (role ne contient pas %s) sur ce fichier, continuer ?" % ", ".join(my_roles_w)):
+        if not confirm("""Vous vous apprêtez à perdre vos droits d'écritures\
+(role ne contient pas %s) sur ce fichier, continuer ?""" % \
+            ", ".join(my_roles_w)):
             return False
     return list(ret)
 
