@@ -2,8 +2,8 @@
 # -*- encoding: utf-8 -*-
 """cranspasswords-server.py: Serveur pour cranspasswords"""
 
-MYDIR = '/home/dstan/cranspasswords/'
-STORE = MYDIR+'test/'
+MYDIR = '/root/cranspasswords/'
+STORE = MYDIR+'db/'
 
 import glob
 import os
@@ -20,7 +20,7 @@ if MYUID == 'root':
     MYUID = os.environ['SUDO_USER']
 
 CRANSP_MAIL = "root@crans.org"
-DEST_MAIL = "dstan@crans.org"
+DEST_MAIL = "root@crans.org"
 
 KEYS = {
     "aza-vallina": ("Damien.Aza-Vallina@crans.org", None),
@@ -40,11 +40,11 @@ KEYS = {
     "samir": ("samir@crans.org", "41C2B76B"),
     "boilard": ("boilard@crans.org", "C39EB6F4"),
     "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
-    "maioli": ("maioli@crans.org",None)             #Bis (maybe 9E5026E8)
+    "maioli": ("maioli@crans.org",None),             #Bis (maybe 9E5026E8)
+    "legallic": ("legallic@crans.org", "3784CFC3"),
     }
 
 RTC=[
-    "dandrimont",
     "iffrig"
     ]
 NOUNOUS=RTC+[
@@ -61,16 +61,17 @@ NOUNOUS=RTC+[
     "cauderlier",
     "maioli",
     "samir",
-    "boilard"
+    "boilard",
+    "legallic",
     ]
 
-CA=["becue","dstan","boilard"]
+CA=[]
 
 ROLES = {
     "ca": CA,
     "ca-w": CA,
     "nounous": NOUNOUS,
-    "nounous-w": NOUNOUS #Or maybe RTC ?
+    "nounous-w": NOUNOUS,
     }
 
 
@@ -122,7 +123,10 @@ def getfile(filename):
 
     filepath = getpath(filename)
     try:
-        return json.loads(open(filepath).read())
+        obj = json.loads(open(filepath).read())
+        if not validate(obj['roles']):
+	        return False
+        return obj
     except IOError:
         return False
      
