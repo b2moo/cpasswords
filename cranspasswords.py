@@ -29,7 +29,7 @@ GPG_ARGS = {
 
 DEBUG = False
 VERB = False
-CLIPBOARD = False # Par défaut, place-t-on le mdp dans le presse-papier ?
+CLIPBOARD = bool(os.getenv('DISPLAY')) # Par défaut, place-t-on le mdp dans le presse-papier ?
 FORCED = False #Mode interactif qui demande confirmation
 NROLES = None     # Droits à définir sur le fichier en édition
 SERVER = None
@@ -386,8 +386,11 @@ if __name__ == "__main__":
         help='Utilisation d\'un serveur alternatif (test, etc)')
     parser.add_argument('-v','--verbose',action='store_true',default=False,
         help="Mode verbeux")
-    parser.add_argument('-c','--clipboard',action='store_true',default=False,
+    parser.add_argument('-c','--clipboard',action='store_true',default=None,
         help="Stocker le mot de passe dans le presse papier")
+    parser.add_argument('--noclipboard',action='store_false',default=None,
+        dest='clipboard',
+        help="Ne PAS stocker le mot de passe dans le presse papier")
     parser.add_argument('-f','--force',action='store_true',default=False,
         help="Forcer l'action")
 
@@ -427,7 +430,8 @@ if __name__ == "__main__":
     SERVER = config.servers[parsed.server]
     VERB = parsed.verbose
     DEBUG = VERB
-    CLIPBOARD = parsed.clipboard
+    if parsed.clipboard != None:
+        CLIPBOARD = parsed.clipboard
     FORCED = parsed.force
     NROLES = parse_roles(parsed.roles)
 
