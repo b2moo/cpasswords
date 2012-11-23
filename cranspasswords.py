@@ -238,7 +238,7 @@ def saveclipboard(restore=False):
     if not restore:
         old_clipboard = proc.stdout.read()
     else:
-        raw_input("Appuyez sur une touche pour récupérer le contenu précédent du presse papier.")
+        raw_input("Appuyez sur Entrée pour récupérer le contenu précédent du presse papier.")
         proc.stdin.write(old_clipboard)
     proc.stdin.close()
     proc.stdout.close()
