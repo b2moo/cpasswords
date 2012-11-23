@@ -36,7 +36,7 @@ KEYS = {
     "boilard": ("boilard@crans.org", "C39EB6F4"),
     "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
     "maioli": ("maioli@crans.org",None),             #Bis (maybe 9E5026E8)
-    "legallic": ("legallic@crans.org", "3784CFC3"),
+    "legallic": ("legallic@crans.org", "A94025B0"),
     }
 
 # Les variables suivantes sont utilisées pour définir le dictionnaire des
