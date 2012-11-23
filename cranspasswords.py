@@ -155,7 +155,7 @@ def encrypt(roles, contents):
         email, key = allkeys[recipient]
         if key:
             email_recipients.append("-r")
-            email_recipients.append(email)
+            email_recipients.append(key)
 
     stdin, stdout = gpg("encrypt", email_recipients)
     stdin.write(contents)
