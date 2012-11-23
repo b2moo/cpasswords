@@ -10,7 +10,7 @@ import os
 import atexit
 import argparse
 import re
-import config
+import clientconfig as config
 
 ## Password pattern in files:
 PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$', \
@@ -222,7 +222,7 @@ def show_files():
     os.waitpid(proc.pid,0)
 
 def show_roles():
-    print """Liste des roles disponibles""" 
+    print """Liste des roles disponibles"""
     for role in all_roles().keys():
         if role.endswith('-w'): continue
         print " * " + role 
