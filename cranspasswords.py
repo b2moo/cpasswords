@@ -10,7 +10,11 @@ import os
 import atexit
 import argparse
 import re
-import clientconfig as config
+try:
+    import clientconfig as config
+except ImportError:
+    print "Read the README"
+    sys.exit(1)
 
 ## Password pattern in files:
 PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$', \
