@@ -33,7 +33,8 @@ GPG_ARGS = {
 
 DEBUG = False
 VERB = False
-CLIPBOARD = bool(os.getenv('DISPLAY')) # Par défaut, place-t-on le mdp dans le presse-papier ?
+# Par défaut, place-t-on le mdp dans le presse-papier ?
+CLIPBOARD = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
 FORCED = False #Mode interactif qui demande confirmation
 NROLES = None     # Droits à définir sur le fichier en édition
 SERVER = None
