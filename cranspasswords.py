@@ -217,7 +217,11 @@ def show_files():
     out = proc.stdin
     out.write("""Liste des fichiers disponibles\n""" )
     my_roles = get_my_roles()
-    for (fname,froles) in all_files().iteritems():
+    files = all_files()
+    keys = files.keys()
+    keys.sort()
+    for fname in keys:
+        froles = files[fname]
         access = set(my_roles).intersection(froles) != set([])
         out.write(" %s %s (%s)\n" % ((access and '+' or '-'),fname,", ".join(froles)))
     out.write("""--Mes roles: %s\n""" % \
