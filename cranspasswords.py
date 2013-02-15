@@ -61,6 +61,18 @@ def gpg(command, args = None):
         proc.stderr.close()
     return proc.stdin, proc.stdout
 
+
+class simple_memoize(object):
+    """ Memoization/Lazy """
+    def __init__(self, f):
+        self.f = f
+        self.val = None
+
+    def __call__(self):
+        if self.val==None:
+            self.val = self.f()
+        return self.val
+
 ######
 ## Remote commands
 
@@ -89,14 +101,17 @@ def remote_command(command, arg = None, stdin_contents = None):
         sshin.close()
     return json.loads(sshout.read())
 
+@simple_memoize
 def all_keys():
     """Récupère les clés du serveur distant"""
     return remote_command("listkeys")
 
+@simple_memoize
 def all_roles():
     """Récupère les roles du serveur distant"""
     return remote_command("listroles")
 
+@simple_memoize
 def all_files():
     """Récupère les fichiers du serveur distant"""
     return remote_command("listfiles")
@@ -113,6 +128,7 @@ def rm_file(filename):
     """Supprime le fichier sur le serveur distant"""
     return remote_command("rmfile", filename)
 
+@simple_memoize
 def get_my_roles():
     """Retoure la liste des rôles perso"""
     allr = all_roles()
@@ -145,17 +161,28 @@ def check_keys():
         return True
     return False
 
-def encrypt(roles, contents):
-    """Chiffre le contenu pour les roles donnés"""
-
+def get_recipients_of_roles(roles):
+    """Renvoie les destinataires d'un rôle"""
     recipients = set()
     allroles = all_roles()
-    allkeys = all_keys()
-    
-    email_recipients = []
     for role in roles:
         for recipient in allroles[role]:
             recipients.add(recipient)
+
+    return recipients
+
+def get_dest_of_roles(roles):
+    allkeys = all_keys()
+    return ["%s (%s -> %s)" % (rec, allkeys[rec][0], allkeys[rec][1]) for rec in \
+        get_recipients_of_roles(roles)]
+
+def encrypt(roles, contents):
+    """Chiffre le contenu pour les roles donnés"""
+
+    allkeys = all_keys()
+    recipients = get_recipients_of_roles(roles)
+    
+    email_recipients = []
     for recipient in recipients:
         email, key = allkeys[recipient]
         if key:
@@ -199,18 +226,28 @@ def get_password(name):
 
 ## Interface
 
-def editor(texte):
-    """ Lance $EDITOR sur texte"""
-    f = tempfile.NamedTemporaryFile()
+def editor(texte, annotations=""):
+    """ Lance $EDITOR sur texte.
+    Renvoie le nouveau texte si des modifications ont été apportées, ou None
+    """
+
+    # Avoid syntax hilight with ".txt". Would be nice to have some colorscheme
+    # for annotations ...
+    f = tempfile.NamedTemporaryFile(suffix='.txt')
     atexit.register(f.close)
     f.write(texte)
+    for l in annotations.split('\n'):
+        f.write("# %s\n" % l.encode('utf-8'))
     f.flush()
     proc = subprocess.Popen(os.getenv('EDITOR') + ' ' + f.name,shell=True)
     os.waitpid(proc.pid,0)
     f.seek(0)
     ntexte = f.read()
     f.close()
-    return texte <> ntexte and ntexte or None
+    ntexte = '\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
+    if texte != ntexte:
+        return ntexte
+    return None
 
 def show_files():
     proc = subprocess.Popen("cat",stdin=subprocess.PIPE,shell=True)
@@ -312,7 +349,16 @@ def edit_file(fname):
         sin.write(value['contents'])
         sin.close()
         texte = sout.read()
-    ntexte = editor(texte)
+    value['roles'] = NROLES or value['roles']
+
+    annotations = u"Ce fichier sera chiffré pour les rôles suivants :\n%s\n\
+C'est-à-dire pour les utilisateurs suivants :\n%s" % (
+           ', '.join(value['roles']),
+           '\n'.join(' %s' % rec for rec in get_dest_of_roles(value['roles']))
+        )
+        
+    ntexte = editor(texte, annotations)
+
     if ntexte == None and not nfile and NROLES == None:
         print "Pas de modifications effectuées"
     else:
