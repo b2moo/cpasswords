@@ -273,6 +273,11 @@ def show_roles():
         if role.endswith('-w'): continue
         print " * " + role 
 
+def show_servers():
+    print """Liste des serveurs disponibles"""
+    for server in config.servers.keys():
+        print " * " + server
+
 old_clipboard = None
 def saveclipboard(restore=False):
     global old_clipboard
@@ -472,6 +477,9 @@ if __name__ == "__main__":
     action_grp.add_argument('--list-roles',action='store_const',dest='action',
         default=show_file,const=show_roles,
         help="Lister les rôles des gens")
+    action_grp.add_argument('--list-servers',action='store_const',dest='action',
+        default=show_file,const=show_servers,
+        help="Lister les rôles serveurs")
     action_grp.add_argument('--recrypt-role',action='store_const',dest='action',
         default=show_file,const=update_role,
         help="Met à jour (reencode les roles)")
