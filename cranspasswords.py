@@ -10,6 +10,9 @@ import os
 import atexit
 import argparse
 import re
+import random
+import string
+import datetime
 try:
     import clientconfig as config
 except ImportError:
@@ -133,6 +136,13 @@ def get_my_roles():
     """Retoure la liste des rôles perso"""
     allr = all_roles()
     return filter(lambda role: SERVER['user'] in allr[role],allr.keys())
+
+def gen_password():
+    """Generate random password"""
+    random.seed(datetime.datetime.now().microsecond)
+    chars = string.letters + string.digits + '/=+*'
+    length = 15
+    return ''.join([random.choice(chars) for _ in xrange(length)])
 
 ######
 ## Local commands
@@ -335,12 +345,15 @@ def show_file(fname):
 def edit_file(fname):
     value = get_file(fname)
     nfile = False
+    annotations = u""
     if value == False:
         nfile = True
         print "Fichier introuvable"
         if not confirm("Créer fichier ?"):
             return
-        texte = ""
+        annotations += u"""Ceci est un fichier initial contenant un mot de passe
+aléatoire, pensez à rajouter une ligne "login: ${login}" """
+        texte = "pass: %s\n" % gen_password()
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
         # créateur
@@ -356,7 +369,7 @@ def edit_file(fname):
         texte = sout.read()
     value['roles'] = NROLES or value['roles']
 
-    annotations = u"Ce fichier sera chiffré pour les rôles suivants :\n%s\n\
+    annotations += u"Ce fichier sera chiffré pour les rôles suivants :\n%s\n\
 C'est-à-dire pour les utilisateurs suivants :\n%s" % (
            ', '.join(value['roles']),
            '\n'.join(' %s' % rec for rec in get_dest_of_roles(value['roles']))
