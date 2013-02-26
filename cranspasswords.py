@@ -461,7 +461,7 @@ if __name__ == "__main__":
         help="Mode verbeux")
     parser.add_argument('-c','--clipboard',action='store_true',default=None,
         help="Stocker le mot de passe dans le presse papier")
-    parser.add_argument('--noclipboard',action='store_false',default=None,
+    parser.add_argument('--no-clip', '--noclip', '--noclipboard',action='store_false',default=None,
         dest='clipboard',
         help="Ne PAS stocker le mot de passe dans le presse papier")
     parser.add_argument('-f','--force',action='store_true',default=False,
