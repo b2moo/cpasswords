@@ -1,3 +1,6 @@
 clientconfig.py
 serverconfig.py
 *.pyc
+
+# Dossier contenant les mots de passe
+db
