@@ -10,7 +10,7 @@ Dans le futur, sera remplacé par une connexion ldap.
 STORE = '/root/cranspasswords/db/'
 """ Répertoire de stockage """
 
-CRANSP_MAIL = "root@crans.org"
+CRANSP_MAIL = "cranspasswords <root@crans.org>"
 """ Expéditeur du mail de notification """
 
 DEST_MAIL = "root@crans.org"

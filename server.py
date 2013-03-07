@@ -136,9 +136,10 @@ def notification(subject,corps,fname,old):
     tomail = DEST_MAIL
     msg = MIMEMultipart(_charset="utf-8")
     msg['Subject'] = subject
+    msg['X-Mailer'] = "cranspasswords"
     # me == the sender's email address
     # family = the list of all recipients' email addresses
-    msg['From'] = "cranspasswords <%s>" % CRANSP_MAIL
+    msg['From'] = CRANSP_MAIL
     msg['To'] = DEST_MAIL
     msg.preamble = "cranspasswords report"
     info = MIMEText(corps + 
