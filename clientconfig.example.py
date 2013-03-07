@@ -9,6 +9,12 @@ servers = {
             '/root/cranspasswords/server'],
         'user' : os.getenv('USER')  # À définir à la main pour les personnes
                                   # n'ayant pas le même login sur leur pc
+    },
+    'ovh': {
+        'server_cmd': ['/usr/bin/ssh', 'ovh.crans.org',\
+            '/root/cranspasswords/server'],
+        'user' : os.getenv('USER')  # À définir à la main pour les personnes
+                                  # n'ayant pas le même login sur leur pc
     }
 }
 

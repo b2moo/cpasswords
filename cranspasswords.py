@@ -10,7 +10,14 @@ import os
 import atexit
 import argparse
 import re
-import clientconfig as config
+import random
+import string
+import datetime
+try:
+    import clientconfig as config
+except ImportError:
+    print "Read the README"
+    sys.exit(1)
 
 ## Password pattern in files:
 PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$', \
@@ -29,7 +36,8 @@ GPG_ARGS = {
 
 DEBUG = False
 VERB = False
-CLIPBOARD = bool(os.getenv('DISPLAY')) # Par défaut, place-t-on le mdp dans le presse-papier ?
+# Par défaut, place-t-on le mdp dans le presse-papier ?
+CLIPBOARD = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
 FORCED = False #Mode interactif qui demande confirmation
 NROLES = None     # Droits à définir sur le fichier en édition
 SERVER = None
@@ -55,6 +63,18 @@ def gpg(command, args = None):
     if not VERB:
         proc.stderr.close()
     return proc.stdin, proc.stdout
+
+
+class simple_memoize(object):
+    """ Memoization/Lazy """
+    def __init__(self, f):
+        self.f = f
+        self.val = None
+
+    def __call__(self):
+        if self.val==None:
+            self.val = self.f()
+        return self.val
 
 ######
 ## Remote commands
@@ -84,14 +104,17 @@ def remote_command(command, arg = None, stdin_contents = None):
         sshin.close()
     return json.loads(sshout.read())
 
+@simple_memoize
 def all_keys():
     """Récupère les clés du serveur distant"""
     return remote_command("listkeys")
 
+@simple_memoize
 def all_roles():
     """Récupère les roles du serveur distant"""
     return remote_command("listroles")
 
+@simple_memoize
 def all_files():
     """Récupère les fichiers du serveur distant"""
     return remote_command("listfiles")
@@ -108,10 +131,18 @@ def rm_file(filename):
     """Supprime le fichier sur le serveur distant"""
     return remote_command("rmfile", filename)
 
+@simple_memoize
 def get_my_roles():
     """Retoure la liste des rôles perso"""
     allr = all_roles()
     return filter(lambda role: SERVER['user'] in allr[role],allr.keys())
+
+def gen_password():
+    """Generate random password"""
+    random.seed(datetime.datetime.now().microsecond)
+    chars = string.letters + string.digits + '/=+*'
+    length = 15
+    return ''.join([random.choice(chars) for _ in xrange(length)])
 
 ######
 ## Local commands
@@ -140,17 +171,38 @@ def check_keys():
         return True
     return False
 
-def encrypt(roles, contents):
-    """Chiffre le contenu pour les roles donnés"""
-
+def get_recipients_of_roles(roles):
+    """Renvoie les destinataires d'un rôle"""
     recipients = set()
     allroles = all_roles()
-    allkeys = all_keys()
-    
-    email_recipients = []
     for role in roles:
         for recipient in allroles[role]:
             recipients.add(recipient)
+
+    return recipients
+
+def get_dest_of_roles(roles):
+    """ Summarize recipients of a role """
+    allkeys = all_keys()
+    def additionnal_info(rec):
+        """ Gives additionnal information for a given recipient """
+        if len(allkeys[rec]) == 0:
+            return ""
+        out = allkeys[rec][0]
+        if len(allkeys[rec]) > 1:
+            out += " -> " + allkeys[rec][1]
+        return "(%s)" % out
+
+    return ["%s %s" % (rec, additionnal_info(rec)) for rec in \
+        get_recipients_of_roles(roles) ]
+
+def encrypt(roles, contents):
+    """Chiffre le contenu pour les roles donnés"""
+
+    allkeys = all_keys()
+    recipients = get_recipients_of_roles(roles)
+    
+    email_recipients = []
     for recipient in recipients:
         email, key = allkeys[recipient]
         if key:
@@ -194,25 +246,39 @@ def get_password(name):
 
 ## Interface
 
-def editor(texte):
-    """ Lance $EDITOR sur texte"""
-    f = tempfile.NamedTemporaryFile()
+def editor(texte, annotations=""):
+    """ Lance $EDITOR sur texte.
+    Renvoie le nouveau texte si des modifications ont été apportées, ou None
+    """
+
+    # Avoid syntax hilight with ".txt". Would be nice to have some colorscheme
+    # for annotations ...
+    f = tempfile.NamedTemporaryFile(suffix='.txt')
     atexit.register(f.close)
     f.write(texte)
+    for l in annotations.split('\n'):
+        f.write("# %s\n" % l.encode('utf-8'))
     f.flush()
     proc = subprocess.Popen(os.getenv('EDITOR') + ' ' + f.name,shell=True)
     os.waitpid(proc.pid,0)
     f.seek(0)
     ntexte = f.read()
     f.close()
-    return texte <> ntexte and ntexte or None
+    ntexte = '\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
+    if texte != ntexte:
+        return ntexte
+    return None
 
 def show_files():
     proc = subprocess.Popen("cat",stdin=subprocess.PIPE,shell=True)
     out = proc.stdin
     out.write("""Liste des fichiers disponibles\n""" )
     my_roles = get_my_roles()
-    for (fname,froles) in all_files().iteritems():
+    files = all_files()
+    keys = files.keys()
+    keys.sort()
+    for fname in keys:
+        froles = files[fname]
         access = set(my_roles).intersection(froles) != set([])
         out.write(" %s %s (%s)\n" % ((access and '+' or '-'),fname,", ".join(froles)))
     out.write("""--Mes roles: %s\n""" % \
@@ -226,6 +292,11 @@ def show_roles():
     for role in all_roles().keys():
         if role.endswith('-w'): continue
         print " * " + role 
+
+def show_servers():
+    print """Liste des serveurs disponibles"""
+    for server in config.servers.keys():
+        print " * " + server
 
 old_clipboard = None
 def saveclipboard(restore=False):
@@ -284,12 +355,15 @@ def show_file(fname):
 def edit_file(fname):
     value = get_file(fname)
     nfile = False
+    annotations = u""
     if value == False:
         nfile = True
         print "Fichier introuvable"
         if not confirm("Créer fichier ?"):
             return
-        texte = ""
+        annotations += u"""Ceci est un fichier initial contenant un mot de passe
+aléatoire, pensez à rajouter une ligne "login: ${login}" """
+        texte = "pass: %s\n" % gen_password()
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
         # créateur
@@ -303,7 +377,16 @@ def edit_file(fname):
         sin.write(value['contents'])
         sin.close()
         texte = sout.read()
-    ntexte = editor(texte)
+    value['roles'] = NROLES or value['roles']
+
+    annotations += u"Ce fichier sera chiffré pour les rôles suivants :\n%s\n\
+C'est-à-dire pour les utilisateurs suivants :\n%s" % (
+           ', '.join(value['roles']),
+           '\n'.join(' %s' % rec for rec in get_dest_of_roles(value['roles']))
+        )
+        
+    ntexte = editor(texte, annotations)
+
     if ntexte == None and not nfile and NROLES == None:
         print "Pas de modifications effectuées"
     else:
@@ -388,7 +471,7 @@ if __name__ == "__main__":
         help="Mode verbeux")
     parser.add_argument('-c','--clipboard',action='store_true',default=None,
         help="Stocker le mot de passe dans le presse papier")
-    parser.add_argument('--noclipboard',action='store_false',default=None,
+    parser.add_argument('--no-clip', '--noclip', '--noclipboard',action='store_false',default=None,
         dest='clipboard',
         help="Ne PAS stocker le mot de passe dans le presse papier")
     parser.add_argument('-f','--force',action='store_true',default=False,
@@ -417,6 +500,9 @@ if __name__ == "__main__":
     action_grp.add_argument('--list-roles',action='store_const',dest='action',
         default=show_file,const=show_roles,
         help="Lister les rôles des gens")
+    action_grp.add_argument('--list-servers',action='store_const',dest='action',
+        default=show_file,const=show_servers,
+        help="Lister les rôles serveurs")
     action_grp.add_argument('--recrypt-role',action='store_const',dest='action',
         default=show_file,const=update_role,
         help="Met à jour (reencode les roles)")

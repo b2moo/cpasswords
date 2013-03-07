@@ -3,9 +3,10 @@ Ce dépôt git contient à la fois le programme client (à utiliser sur votre
 ordinateur) et le serveur.
 
 == Installation et configuration du client ==
- * Copier le dépôt git sur votre ordinateur:
+ * Copier le dépôt git sur votre ordinateur :
     $ git clone git://git.crans.org/git/cranspasswords.git 
  * Copier clientconfig.example.py en clientconfig.py et adapter
    à vos besoins
+ * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
  * ???
  
