@@ -184,17 +184,8 @@ def get_recipients_of_roles(roles):
 def get_dest_of_roles(roles):
     """ Summarize recipients of a role """
     allkeys = all_keys()
-    def additionnal_info(rec):
-        """ Gives additionnal information for a given recipient """
-        if len(allkeys[rec]) == 0:
-            return ""
-        out = allkeys[rec][0]
-        if len(allkeys[rec]) > 1:
-            out += " -> " + allkeys[rec][1]
-        return "(%s)" % out
-
-    return ["%s %s" % (rec, additionnal_info(rec)) for rec in \
-        get_recipients_of_roles(roles) ]
+    return ["%s (%s)" % (rec, allkeys[rec]) for rec in \
+        get_recipients_of_roles(roles) if allkeys[rec]]
 
 def encrypt(roles, contents):
     """Chiffre le contenu pour les roles donnés"""

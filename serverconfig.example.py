@@ -18,25 +18,25 @@ DEST_MAIL = "root@crans.org"
 
 
 KEYS = {
-    "aza-vallina": ("Damien.Aza-Vallina@crans.org", None),
-    "dandrimont": ("nicolas.dandrimont@crans.org", "66475AAF"),
-    "blockelet": ("blockelet@crans.org", "AF087A52"),
-    "chambart": ("pierre.chambart@crans.org", "F2530FCE"),
-    "dimino": ("jdimino@dptinfo.ens-cachan.fr", "2127F85A"),
-    "durand-gasselin": ("adg@crans.org", "8E96ACDA"),
-    "glondu": ("Stephane.Glondu@crans.org", "49881AD3"),
-    "huber": ("olivier.huber@crans.org", "E0DCF376"),
-    "lagorce": ("xavier.lagorce@crans.org", "0BF3708E"),
-    "parret-freaud": ("parret-freaud@crans.org", "7D980513"),
-    "tvincent": ("vincent.thomas@crans.org", "C5C4ACC0"),
-    "iffrig": ("iffrig@crans.org","5BEC9A2F"),
-    "becue": ("becue@crans.org", "194974E2"),
-    "dstan": ("daniel.stan@crans.org", "6E1C820B"),
-    "samir": ("samir@crans.org", "41C2B76B"),
-    "boilard": ("boilard@crans.org", "C39EB6F4"),
-    "cauderlier": ("cauderlier@crans.org",None),    #Méchant pas beau
-    "maioli": ("maioli@crans.org",None),             #Bis (maybe 9E5026E8)
-    "legallic": ("legallic@crans.org", "A94025B0"),
+    'aza-vallina': None,
+    'becue': '0D442664194974E2',
+    'blockelet': '5314C173AF087A52',
+    'boilard': 'C1690AB9C39EB6F4',
+    'cauderlier': None,
+    'chambart': '43680A46F2530FCE',
+    'dandrimont': 'B8E5087766475AAF',
+    'dimino': '1E8A30532127F85A',
+    'dstan': 'BC9BF8456E1C820B',
+    'durand-gasselin': '30F01C448E96ACDA',
+    'glondu': '7853DA4D49881AD3',
+    'huber': '1EF81A95E0DCF376',
+    'iffrig': 'AB7F558C5BEC9A2F',
+    'lagorce': '9D9D7CE70BF3708E',
+    'legallic': '3602E1C9A94025B0',
+    'maioli': None,
+    'parret-freaud': '13AC8F777D980513',
+    'samir': 'C86AD2AA41C2B76B',
+    'tvincent': '1C6BE33AC5C4ACC0'
     }
 
 # Les variables suivantes sont utilisées pour définir le dictionnaire des
