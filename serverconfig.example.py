@@ -30,7 +30,7 @@ KEYS = {
     'durand-gasselin': '30F01C448E96ACDA',
     'glondu': '7853DA4D49881AD3',
     'huber': '1EF81A95E0DCF376',
-    'iffrig': 'AB7F558C5BEC9A2F',
+    'iffrig': '18068DEA354B0045',
     'lagorce': '9D9D7CE70BF3708E',
     'legallic': '3602E1C9A94025B0',
     'maioli': None,
