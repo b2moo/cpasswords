@@ -195,7 +195,7 @@ def encrypt(roles, contents):
     
     email_recipients = []
     for recipient in recipients:
-        email, key = allkeys[recipient]
+        key = allkeys[recipient]
         if key:
             email_recipients.append("-r")
             email_recipients.append(key)
