@@ -470,7 +470,7 @@ if __name__ == "__main__":
 
     # Actions possibles
     action_grp = parser.add_mutually_exclusive_group(required=False)
-    action_grp.add_argument('--edit',action='store_const',dest='action',
+    action_grp.add_argument('-e', '--edit',action='store_const',dest='action',
         default=show_file,const=edit_file,
         help="Editer (ou créer)")
     action_grp.add_argument('--view',action='store_const',dest='action',
