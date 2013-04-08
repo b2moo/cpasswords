@@ -353,7 +353,7 @@ def edit_file(fname):
         if not confirm("Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
-aléatoire, pensez à rajouter une ligne "login: ${login}" """
+aléatoire, pensez à rajouter une ligne "login: ${login}"\n"""
         texte = "pass: %s\n" % gen_password()
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
