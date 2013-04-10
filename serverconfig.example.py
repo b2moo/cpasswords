@@ -10,6 +10,9 @@ Dans le futur, sera remplacé par une connexion ldap.
 STORE = '/root/cranspasswords/db/'
 """ Répertoire de stockage """
 
+READONLY = False
+""" Ce serveur est-il read-only (on ne peut pas y modifier les mots de passe) """
+
 CRANSP_MAIL = "cranspasswords <root@crans.org>"
 """ Expéditeur du mail de notification """
 

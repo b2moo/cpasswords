@@ -12,7 +12,7 @@ import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from serverconfig import CRANSP_MAIL, DEST_MAIL, KEYS, ROLES, STORE
+from serverconfig import READONLY, CRANSP_MAIL, DEST_MAIL, KEYS, ROLES, STORE
 
 MYUID = pwd.getpwuid(os.getuid())[0]
 if MYUID == 'root':
@@ -153,11 +153,15 @@ def notification(subject,corps,fname,old):
     conn.sendmail(frommail,tomail,msg.as_string())
     conn.quit()
 
+WRITE_COMMANDS = ["putfile", "rmfile"]
+
 if __name__ == "__main__":
     argv = sys.argv[1:]
     if len(argv) not in [1, 2]:
         sys.exit(1)
     command = argv[0]
+    if READONLY and command in WRITE_COMMANDS:
+        raise IOError("Ce serveur est read-only.")
     filename = None
     try:
         filename = argv[1]
