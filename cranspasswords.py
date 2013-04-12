@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""cranspasswords: gestion des mots de passe du Cr@ns"""
+
+"""Gestion centralisée des mots de passe avec chiffrement GPG
+
+Copyright (C) 2010-2013 Cr@ns <roots@crans.org>
+Authors : Daniel Stan <daniel.stan@crans.org>
+          Vincent Le Gallic <legallic@crans.org>
+"""
 
 import sys
 import subprocess
@@ -20,20 +26,21 @@ except ImportError:
     print "Read the README"
     sys.exit(1)
 
-## Password pattern in files:
-PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$', \
+#: pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
+PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$',
         flags=re.IGNORECASE)
 
-######
 ## GPG Definitions
-
+#: path gu binaire gpg
 GPG = '/usr/bin/gpg'
+#: paramètres à fournir à gpg en fonction de l'action désirée
 GPG_ARGS = {
-    'decrypt': ['-d'],
-    'encrypt': ['--armor', '-es'],
-    'fingerprint': ['--fingerprint'],
-    'receive-keys': ['--recv-keys'],
+    'decrypt' : ['-d'],
+    'encrypt' : ['--armor', '-es'],
+    'fingerprint' : ['--fingerprint'],
+    'receive-keys' : ['--recv-keys'],
     }
+#: map lettre de trustlevel -> (signification, faut-il faire confiance à la clé)
 GPG_TRUSTLEVELS = {
                     u"-" : (u"inconnue", False),
                     u"n" : (u"nulle", False),
@@ -44,13 +51,15 @@ GPG_TRUSTLEVELS = {
                     u"e" : (u"expirée", False),
                     u"q" : (u"/données insuffisantes/", False),
                   }
-
-DEBUG = False
+#: Mode verbeux
 VERB = False
-# Par défaut, place-t-on le mdp dans le presse-papier ?
+#: Par défaut, place-t-on le mdp dans le presse-papier ?
 CLIPBOARD = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
-FORCED = False #Mode interactif qui demande confirmation
-NROLES = None     # Droits à définir sur le fichier en édition
+#: Mode «ne pas demaner confirmation»
+FORCED = False
+#: Droits à définir sur le fichier en édition
+NROLES = None
+#: Serveur à interroger (peuplée à l'exécution)
 SERVER = None
 
 def gpg(command, args = None):
@@ -83,13 +92,13 @@ class simple_memoize(object):
         self.val = None
 
     def __call__(self):
-        if self.val==None:
+        if self.val == None:
             self.val = self.f()
         return self.val
 
+
 ######
 ## Remote commands
-
 
 def ssh(command, arg = None):
     """Lance ssh avec les arguments donnés. Renvoie son entrée
@@ -137,19 +146,20 @@ def get_file(filename):
 def put_file(filename, roles, contents):
     """Dépose le fichier sur le serveur distant"""
     return remote_command("putfile", filename, {'roles': roles,
-                                                'contents': contents})
+                                                'contents' : contents})
+
 def rm_file(filename):
     """Supprime le fichier sur le serveur distant"""
     return remote_command("rmfile", filename)
 
 @simple_memoize
 def get_my_roles():
-    """Retoure la liste des rôles perso"""
+    """Retourne la liste des rôles de l'utilisateur"""
     allr = all_roles()
-    return filter(lambda role: SERVER['user'] in allr[role],allr.keys())
+    return filter(lambda role: SERVER['user'] in allr[role], allr.keys())
 
 def gen_password():
-    """Generate random password"""
+    """Génère un mot de passe aléatoire"""
     random.seed(datetime.datetime.now().microsecond)
     chars = string.letters + string.digits + '/=+*'
     length = 15
@@ -160,15 +170,15 @@ def gen_password():
 
 def update_keys():
     """Met à jour les clés existantes"""
-
+    
     keys = all_keys()
-
+    
     _, stdout = gpg("receive-keys", [key for _, key in keys.values() if key])
     return stdout.read()
 
 def check_keys():
     """Vérifie les clés existantes"""
-
+    
     keys = all_keys()
     gpg = gnupg.GPG(gnupghome='~/.gnupg')
     localkeys = gpg.list_keys()
@@ -202,18 +212,18 @@ def get_recipients_of_roles(roles):
     for role in roles:
         for recipient in allroles[role]:
             recipients.add(recipient)
-
+    
     return recipients
 
 def get_dest_of_roles(roles):
-    """ Summarize recipients of a role """
+    """Renvoie la liste des "username : mail (fingerprint)" """
     allkeys = all_keys()
     return ["%s : %s (%s)" % (rec, allkeys[rec][0], allkeys[rec][1])
                for rec in get_recipients_of_roles(roles) if allkeys[rec][1]]
 
 def encrypt(roles, contents):
     """Chiffre le contenu pour les roles donnés"""
-
+    
     allkeys = all_keys()
     recipients = get_recipients_of_roles(roles)
     
@@ -223,7 +233,7 @@ def encrypt(roles, contents):
         if fpr:
             fpr_recipients.append("-r")
             fpr_recipients.append(fpr)
-
+    
     stdin, stdout = gpg("encrypt", fpr_recipients)
     stdin.write(contents)
     stdin.close()
@@ -259,13 +269,14 @@ def get_password(name):
     remotefile = get_file(name)
     return decrypt(remotefile['contents'])
 
+######
 ## Interface
 
 def editor(texte, annotations=""):
     """ Lance $EDITOR sur texte.
     Renvoie le nouveau texte si des modifications ont été apportées, ou None
     """
-
+    
     # Avoid syntax hilight with ".txt". Would be nice to have some colorscheme
     # for annotations ...
     f = tempfile.NamedTemporaryFile(suffix='.txt')
@@ -274,8 +285,8 @@ def editor(texte, annotations=""):
     for l in annotations.split('\n'):
         f.write("# %s\n" % l.encode('utf-8'))
     f.flush()
-    proc = subprocess.Popen(os.getenv('EDITOR') + ' ' + f.name,shell=True)
-    os.waitpid(proc.pid,0)
+    proc = subprocess.Popen(os.getenv('EDITOR') + ' ' + f.name, shell=True)
+    os.waitpid(proc.pid, 0)
     f.seek(0)
     ntexte = f.read()
     f.close()
@@ -285,9 +296,8 @@ def editor(texte, annotations=""):
     return None
 
 def show_files():
-    proc = subprocess.Popen("cat",stdin=subprocess.PIPE,shell=True)
-    out = proc.stdin
-    out.write("""Liste des fichiers disponibles\n""" )
+    """Affiche la liste des fichiers disponibles sur le serveur distant"""
+    print """Liste des fichiers disponibles"""
     my_roles = get_my_roles()
     files = all_files()
     keys = files.keys()
@@ -295,32 +305,31 @@ def show_files():
     for fname in keys:
         froles = files[fname]
         access = set(my_roles).intersection(froles) != set([])
-        out.write(" %s %s (%s)\n" % ((access and '+' or '-'),fname,", ".join(froles)))
-    out.write("""--Mes roles: %s\n""" % \
-        ", ".join(my_roles))
+        print (u" %s %s (%s)" % ((access and '+' or '-'), fname, ", ".join(froles))).encode("utf-8")
+    print (u"""--Mes roles: %s""" % (", ".join(my_roles),)).encode("utf-8")
     
-    out.close()
-    os.waitpid(proc.pid,0)
-
 def show_roles():
+    """Affiche la liste des roles existants"""
     print """Liste des roles disponibles"""
     for role in all_roles().keys():
-        if role.endswith('-w'): continue
-        print " * " + role 
+        if not role.endswith('-w'):
+            print " * " + role 
 
 def show_servers():
+    """Affiche la liste des serveurs disponibles"""
     print """Liste des serveurs disponibles"""
     for server in config.servers.keys():
         print " * " + server
 
 old_clipboard = None
 def saveclipboard(restore=False):
+    """Enregistre le contenu du presse-papier. Le rétablit si ``restore=True``"""
     global old_clipboard
     if restore and old_clipboard == None:
         return
     act = '-in' if restore else '-out'
-    proc =subprocess.Popen(['xclip',act,'-selection','clipboard'],\
-        stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=sys.stderr)
+    proc = subprocess.Popen(['xclip', act, '-selection', 'clipboard'],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=sys.stderr)
     if not restore:
         old_clipboard = proc.stdout.read()
     else:
@@ -330,20 +339,22 @@ def saveclipboard(restore=False):
     proc.stdout.close()
 
 def clipboard(texte):
+    """Place ``texte`` dans le presse-papier en mémorisant l'ancien contenu."""
     saveclipboard()
-    proc =subprocess.Popen(['xclip','-selection','clipboard'],\
-        stdin=subprocess.PIPE,stdout=sys.stdout,stderr=sys.stderr)
+    proc =subprocess.Popen(['xclip', '-selection', 'clipboard'],\
+        stdin=subprocess.PIPE, stdout=sys.stdout, stderr=sys.stderr)
     proc.stdin.write(texte)
     proc.stdin.close()
     return "[Le mot de passe a été mis dans le presse papier]"
 
 
 def show_file(fname):
+    """Affiche le contenu d'un fichier"""
     value = get_file(fname)
     if value == False:
         print "Fichier introuvable"
         return
-    (sin,sout) = gpg('decrypt')
+    (sin, sout) = gpg('decrypt')
     sin.write(value['contents'])
     sin.close()
     texte = sout.read()
@@ -359,7 +370,7 @@ def show_file(fname):
     showbin = "cat" if hidden else "less"
     proc = subprocess.Popen(showbin, stdin=subprocess.PIPE, shell=True)
     out = proc.stdin
-    out.write("Fichier %s:\n\n" % fname)
+    out.write("Fichier %s:\n\n" % (fname,))
     out.write(ntexte)
     out.write("-----\n")
     out.write("Visible par: %s\n" % ','.join(value['roles']))
@@ -368,6 +379,7 @@ def show_file(fname):
 
         
 def edit_file(fname):
+    """Modifie/Crée un fichier"""
     value = get_file(fname)
     nfile = False
     annotations = u""
@@ -377,7 +389,8 @@ def edit_file(fname):
         if not confirm("Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
-aléatoire, pensez à rajouter une ligne "login: ${login}"\n"""
+aléatoire, pensez à rajouter une ligne "login: ${login}"
+Enregistrez le fichier vide pour annuler.\n"""
         texte = "pass: %s\n" % gen_password()
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
@@ -386,16 +399,16 @@ aléatoire, pensez à rajouter une ligne "login: ${login}"\n"""
         if roles == []:
             print "Vous ne possédez aucun rôle en écriture ! Abandon."
             return
-        value = {'roles':roles}
+        value = {'roles' : roles}
     else:
-        (sin,sout) = gpg('decrypt')
+        (sin, sout) = gpg('decrypt')
         sin.write(value['contents'])
         sin.close()
         texte = sout.read()
     value['roles'] = NROLES or value['roles']
 
-    annotations += u"Ce fichier sera chiffré pour les rôles suivants :\n%s\n\
-C'est-à-dire pour les utilisateurs suivants :\n%s" % (
+    annotations += u"""Ce fichier sera chiffré pour les rôles suivants :\n%s\n
+C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
            ', '.join(value['roles']),
            '\n'.join(' %s' % rec for rec in get_dest_of_roles(value['roles']))
         )
@@ -406,12 +419,13 @@ C'est-à-dire pour les utilisateurs suivants :\n%s" % (
         print "Pas de modifications effectuées"
     else:
         ntexte = texte if ntexte == None else ntexte
-        if put_password(fname,value['roles'],ntexte):
+        if put_password(fname, value['roles'], ntexte):
             print "Modifications enregistrées"
         else:
             print "Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)"
 
 def confirm(text):
+    """Demande confirmation, sauf si on est mode ``FORCED``"""
     if FORCED: return True
     while True:
         out = raw_input(text + ' (O/N)').lower()
@@ -421,24 +435,26 @@ def confirm(text):
             return False
 
 def remove_file(fname):
+    """Supprime un fichier"""
     if not confirm('Êtes-vous sûr de vouloir supprimer %s ?' % fname):
         return
     if rm_file(fname):
-        print "Suppression achevée"
+        print "Suppression effectuée"
     else:
         print "Erreur de suppression (avez-vous les droits ?)"
-    
+
 
 def my_check_keys():
+    """Vérifie les clés et affiche un message en fonction du résultat"""
     print (check_keys() and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8")
 
 def my_update_keys():
+    """Met à jour les clés existantes et affiche le résultat"""
     print update_keys()
 
 def update_role():
+    """Rechiffre les fichiers"""
     roles = None
-    """ Reencode les fichiers, si roles est fourni,
-    contient une liste de rôles"""
     my_roles = get_my_roles()
     if roles == None:
         # On ne conserve que les rôles qui finissent par -w
@@ -446,14 +462,14 @@ def update_role():
     if type(roles) != list:
         roles = [roles]
 
-    for (fname,froles) in all_files().iteritems():
+    for (fname, froles) in all_files().iteritems():
         if set(roles).intersection(froles) == set([]):
             continue
-        #if VERB:
-        print "Reencodage de %s" % fname
-        put_password(fname,froles,get_password(fname))
+        print "Rechiffrement de %s" % fname
+        put_password(fname, froles, get_password(fname))
 
 def parse_roles(strroles):
+    """Interprête une liste de rôles fournie par l'utilisateur"""
     if strroles == None: return None
     roles = all_roles()
     my_roles = filter(lambda r: SERVER['user'] in roles[r],roles.keys())
@@ -473,69 +489,68 @@ def parse_roles(strroles):
     
     if not FORCED and not writable:
         if not confirm("""Vous vous apprêtez à perdre vos droits d'écritures\
-(role ne contient pas %s) sur ce fichier, continuer ?""" % \
+(role ne contient pas %s) sur ce fichier, continuer ?""" %
             ", ".join(my_roles_w)):
             return False
     return list(ret)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="trousseau crans")
-    parser.add_argument('--server',default='default',
-        help='Utilisation d\'un serveur alternatif (test, etc)')
-    parser.add_argument('-v','--verbose',action='store_true',default=False,
+    parser.add_argument('--server', default='default',
+        help="Utilisation d'un serveur alternatif (test, backup, etc)")
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
         help="Mode verbeux")
-    parser.add_argument('-c','--clipboard',action='store_true',default=None,
+    parser.add_argument('-c', '--clipboard', action='store_true', default=None,
         help="Stocker le mot de passe dans le presse papier")
-    parser.add_argument('--no-clip', '--noclip', '--noclipboard',action='store_false',default=None,
+    parser.add_argument('--no-clip', '--noclip', '--noclipboard', action='store_false', default=None,
         dest='clipboard',
         help="Ne PAS stocker le mot de passe dans le presse papier")
-    parser.add_argument('-f','--force',action='store_true',default=False,
-        help="Forcer l'action")
+    parser.add_argument('-f', '--force', action='store_true', default=False,
+        help="Ne pas demander confirmation")
 
     # Actions possibles
     action_grp = parser.add_mutually_exclusive_group(required=False)
-    action_grp.add_argument('-e', '--edit',action='store_const',dest='action',
-        default=show_file,const=edit_file,
+    action_grp.add_argument('-e', '--edit', action='store_const', dest='action',
+        default=show_file, const=edit_file,
         help="Editer (ou créer)")
-    action_grp.add_argument('--view',action='store_const',dest='action',
-        default=show_file,const=show_file,
-        help="Voir")
-    action_grp.add_argument('--remove',action='store_const',dest='action',
-        default=show_file,const=remove_file,
-        help="Effacer")
-    action_grp.add_argument('-l','--list',action='store_const',dest='action',
-        default=show_file,const=show_files,
+    action_grp.add_argument('--view', action='store_const', dest='action',
+        default=show_file, const=show_file,
+        help="Voir le fichier")
+    action_grp.add_argument('--remove', action='store_const', dest='action',
+        default=show_file, const=remove_file,
+        help="Effacer le fichier")
+    action_grp.add_argument('-l', '--list', action='store_const', dest='action',
+        default=show_file, const=show_files,
         help="Lister les fichiers")
-    action_grp.add_argument('--check-keys',action='store_const',dest='action',
-        default=show_file,const=my_check_keys,
+    action_grp.add_argument('--check-keys', action='store_const', dest='action',
+        default=show_file, const=my_check_keys,
         help="Vérifier les clés")
-    action_grp.add_argument('--update-keys',action='store_const',dest='action',
-        default=show_file,const=my_update_keys,
+    action_grp.add_argument('--update-keys', action='store_const', dest='action',
+        default=show_file, const=my_update_keys,
         help="Mettre à jour les clés")
-    action_grp.add_argument('--list-roles',action='store_const',dest='action',
-        default=show_file,const=show_roles,
-        help="Lister les rôles des gens")
-    action_grp.add_argument('--list-servers',action='store_const',dest='action',
-        default=show_file,const=show_servers,
-        help="Lister les rôles serveurs")
-    action_grp.add_argument('--recrypt-role',action='store_const',dest='action',
-        default=show_file,const=update_role,
-        help="Met à jour (reencode les roles)")
+    action_grp.add_argument('--list-roles', action='store_const', dest='action',
+        default=show_file, const=show_roles,
+        help="Lister les rôles existants")
+    action_grp.add_argument('--list-servers', action='store_const', dest='action',
+        default=show_file, const=show_servers,
+        help="Lister les serveurs")
+    action_grp.add_argument('--recrypt-role', action='store_const', dest='action',
+        default=show_file, const=update_role,
+        help="Rechiffrer les mots de passe")
 
-    parser.add_argument('--roles',nargs='?',default=None,
+    parser.add_argument('--roles', nargs='?', default=None,
         help="liste des roles à affecter au fichier")
-    parser.add_argument('fname',nargs='?',default=None,
+    parser.add_argument('fname', nargs='?', default=None,
         help="Nom du fichier à afficher")
-
+    
     parsed = parser.parse_args(sys.argv[1:])
     SERVER = config.servers[parsed.server]
     VERB = parsed.verbose
-    DEBUG = VERB
     if parsed.clipboard != None:
         CLIPBOARD = parsed.clipboard
     FORCED = parsed.force
     NROLES = parse_roles(parsed.roles)
-
+    
     if NROLES != False:
         if parsed.action.func_code.co_argcount == 0:
             parsed.action()
