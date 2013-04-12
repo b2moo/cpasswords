@@ -7,6 +7,7 @@ ordinateur) et le serveur.
     $ git clone git://git.crans.org/git/cranspasswords.git 
  * Copier clientconfig.example.py en clientconfig.py et adapter
    à vos besoins
+ * Installer le package python-gnupg
  * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
  * ???
  
