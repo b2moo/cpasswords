@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
+
 """ Configuration Serveur de cranspasswords.
 Sont définis ici les utilisateurs et les rôles associés.
 Ce fichier est donné à titre d'exemple, mais n'est PAS
@@ -7,19 +8,19 @@ utilisé lorsque fonctionnement en mode client.
 Dans le futur, sera remplacé par une connexion ldap.
 """
 
+#: Répertoire de stockage des mots de passe
 STORE = '/root/cranspasswords/db/'
-""" Répertoire de stockage """
 
+#: Ce serveur est-il read-only (on ne peut pas y modifier les mots de passe)
 READONLY = False
-""" Ce serveur est-il read-only (on ne peut pas y modifier les mots de passe) """
 
+#: Expéditeur du mail de notification
 CRANSP_MAIL = "cranspasswords <root@crans.org>"
-""" Expéditeur du mail de notification """
 
+#: Destinataire du mail de notification
 DEST_MAIL = "root@crans.org"
-""" Destinataire du mail de notification """
 
-
+#: Mapping des utilisateurs et de leurs (mail, fingerprint GPG)
 KEYS = {
     'aza-vallina': ('Damien.Aza-Vallina@crans.org', None),
     'becue': ('becue@crans.org', '9AE04D986400E3B67528F4930D442664194974E2'),
@@ -62,11 +63,12 @@ KEYS = {
     'kviard': ('kviard@crans.org', None)
 }
 
-# Les variables suivantes sont utilisées pour définir le dictionnaire des
-# rôles.
+#: Les variables suivantes sont utilisées pour définir le dictionnaire des
+#: rôles.
 RTC=[
     "iffrig"
     ]
+#: Liste des usernames des nounous
 NOUNOUS=RTC+[
     "blockelet",
     "becue",
@@ -86,12 +88,14 @@ NOUNOUS=RTC+[
     ]
 
 # Autogen:
+#: Liste des usernames des apprentis
 APPRENTIS=['grande', 'bonaque', 'moisy-mabille', 'baste', 'duplouy', 'besson', 'pvincent', 'quelennec', 'pommeret', 'guiraud', 'serrano', 'kherouf', 'randazzo', 'tilquin', 'lasseri', 'epalle', 'soret', 'gstalter', 'kviard']
 
+#: Liste des usernames des membres du CA
 CA=[
 ]
 
-## Les vrais rôles !
+#: Les roles utilisés pour savoir qui a le droit le lire/écrire quoi
 ROLES = {
     "ca": CA,
     "ca-w": CA,

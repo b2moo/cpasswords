@@ -1,2 +1,3 @@
 #!/bin/bash
+# sudo-wrapper pour exécuter cranspasswords côté serveur
 sudo /root/cranspasswords/server.py $*

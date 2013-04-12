@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
-"""cranspasswords-server.py: Serveur pour cranspasswords"""
+
+"""Serveur pour cranspasswords"""
 
 import glob
 import os
@@ -18,22 +19,23 @@ MYUID = pwd.getpwuid(os.getuid())[0]
 if MYUID == 'root':
     MYUID = os.environ['SUDO_USER']
 
-def validate(roles,mode='r'):
-    """Valide que l'appelant appartient bien aux roles précisés
+def validate(roles, mode='r'):
+    """Vérifie que l'appelant appartient bien aux roles précisés
     Si mode mode='w', recherche un rôle en écriture
     """
     for role in roles:
-        if mode == 'w': role+='-w'
+        if mode == 'w':
+            role += '-w'
         if ROLES.has_key(role) and MYUID in ROLES[role]:
             return True
     return False
 
-def getpath(filename,backup=False):
-    """Récupère le chemin du fichier `filename'"""
-    return os.path.join(STORE, '%s.%s' % (filename,'bak' if backup else 'json'))
+def getpath(filename, backup=False):
+    """Récupère le chemin du fichier ``filename``"""
+    return os.path.join(STORE, '%s.%s' % (filename, 'bak' if backup else 'json'))
 
 def writefile(filename, contents):
-    """Écrit le fichier de manière sécure"""
+    """Écrit le fichier avec les bons droits UNIX"""
     os.umask(0077)
     f = open(filename, 'w')
     f.write(contents)
@@ -44,26 +46,22 @@ def listroles():
     return ROLES
 
 def listkeys():
-    """Liste les uid et les clés correspondantes"""
+    """Liste les usernames et les (mail, fingerprint) correspondants"""
     return KEYS
 
 def listfiles():
     """Liste les fichiers dans l'espace de stockage, et les roles qui peuvent y accéder"""
     os.chdir(STORE)
-
-    filenames = glob.glob('*.json')
-
-    files = {}
     
+    filenames = glob.glob('*.json')
+    files = {}
     for filename in filenames:
         file_dict = json.loads(open(filename).read())
         files[filename[:-5]] = file_dict["roles"]
-        
     return files
     
 def getfile(filename):
-    """Récupère le fichier `filename'"""
-
+    """Récupère le fichier ``filename``"""
     filepath = getpath(filename)
     try:
         obj = json.loads(open(filepath).read())
@@ -75,19 +73,16 @@ def getfile(filename):
      
 
 def putfile(filename):
-    """Écrit le fichier `filename' avec les données reçues sur stdin."""
-
+    """Écrit le fichier ``filename`` avec les données reçues sur stdin."""
     filepath = getpath(filename)
-    
     stdin = sys.stdin.read()
     parsed_stdin = json.loads(stdin)
-
     try:
         roles = parsed_stdin['roles']
         contents = parsed_stdin['contents']
     except KeyError:
         return False
-
+    
     try:
         old = getfile(filename)
         oldroles = old['roles']
@@ -98,9 +93,9 @@ def putfile(filename):
         if not validate(oldroles,'w'):
             return False
     
-    notification("Modification de %s" % filename,\
-    "Le fichier %s a été modifié par %s." %\
-        (filename,MYUID),filename,old)
+    notification("Modification de %s" % filename,
+        "Le fichier %s a été modifié par %s." % (filename, MYUID),
+        filename, old)
 
 
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
@@ -123,22 +118,22 @@ def rmfile(filename):
             return False
     return True
 
-def notification(subject,corps,fname,old):
-    back = open(getpath(fname,True),'a')
+def backup(fname, old):
+    """Backupe l'ancienne version du fichier"""
+    back = open(getpath(fname, backup=True), 'a')
     back.write(json.dumps(old))
     back.write('\n')
     back.write('* %s: %s\n' % (str(datetime.datetime.now()),corps)) 
     back.close()
-
-    # Puis envoi du message
+    
+def notification(subject, corps, fname, old):
+    """Envoie par mail une notification de changement de fichier"""
     conn = smtplib.SMTP('localhost')
     frommail = CRANSP_MAIL
     tomail = DEST_MAIL
     msg = MIMEMultipart(_charset="utf-8")
     msg['Subject'] = subject
     msg['X-Mailer'] = "cranspasswords"
-    # me == the sender's email address
-    # family = the list of all recipients' email addresses
     msg['From'] = CRANSP_MAIL
     msg['To'] = DEST_MAIL
     msg.preamble = "cranspasswords report"
@@ -167,7 +162,7 @@ if __name__ == "__main__":
         filename = argv[1]
     except IndexError:
         pass
-
+    
     if command == "listroles":
         print json.dumps(listroles())
     elif command == "listkeys":
@@ -185,4 +180,3 @@ if __name__ == "__main__":
             print json.dumps(rmfile(filename))
         else:
             sys.exit(1)
-    
