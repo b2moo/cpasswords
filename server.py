@@ -93,11 +93,11 @@ def putfile(filename):
         if not validate(oldroles,'w'):
             return False
     
-    notification("Modification de %s" % filename,
-        "Le fichier %s a été modifié par %s." % (filename, MYUID),
-        filename, old)
-
-
+        backup(filename, old)
+        notification(u"Modification de %s" % filename,
+            u"Le fichier %s a été modifié par %s." % (filename, MYUID),
+            filename, old)
+    
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
     return True
 
@@ -110,9 +110,10 @@ def rmfile(filename):
         return True
     else:
         if validate(roles,'w'):
-            notification("Suppression de %s" % filename,\
-                "Le fichier %s a été supprimé par %s." %\
-                (filename,MYUID),filename,old)
+            backup(filename, old)
+            notification(u"Suppression de %s" % filename,
+                u"Le fichier %s a été supprimé par %s." % (filename, MYUID),
+                filename, old)
             os.remove(getpath(filename))
         else:
             return False
@@ -125,7 +126,7 @@ def backup(fname, old):
     back.write('\n')
     back.write('* %s: %s\n' % (str(datetime.datetime.now()),corps)) 
     back.close()
-    
+
 def notification(subject, corps, fname, old):
     """Envoie par mail une notification de changement de fichier"""
     conn = smtplib.SMTP('localhost')
