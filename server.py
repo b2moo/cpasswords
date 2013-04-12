@@ -38,7 +38,7 @@ def writefile(filename, contents):
     """Écrit le fichier avec les bons droits UNIX"""
     os.umask(0077)
     f = open(filename, 'w')
-    f.write(contents)
+    f.write(contents.encode("utf-8"))
     f.close()
 
 def listroles():
@@ -87,7 +87,7 @@ def putfile(filename):
         old = getfile(filename)
         oldroles = old['roles']
     except TypeError:
-        old = "[Création du fichier]"
+        old = u"[Création du fichier]"
         pass
     else:
         if not validate(oldroles,'w'):
@@ -134,19 +134,15 @@ def notification(subject, corps, fname, old):
     tomail = DEST_MAIL
     msg = MIMEMultipart(_charset="utf-8")
     msg['Subject'] = subject
-    msg['X-Mailer'] = "cranspasswords"
+    msg['X-Mailer'] = u"cranspasswords"
     msg['From'] = CRANSP_MAIL
     msg['To'] = DEST_MAIL
-    msg.preamble = "cranspasswords report"
+    msg.preamble = u"cranspasswords report"
     info = MIMEText(corps + 
-        "\nLa version précédente a été sauvegardée." +
-        #"\nCi-joint l'ancien fichier." +
-        "\n\n-- \nCranspasswords.py",_charset="utf-8")
+        u"\nLa version précédente a été sauvegardée." +
+        u"\n\n-- \nCranspasswords.py", _charset="utf-8")
     msg.attach(info)
-    #old = MIMEText(old)
-    #old.add_header('Content-Disposition', 'attachment', filename=fname) 
-    #msg.attach(str(old))
-    conn.sendmail(frommail,tomail,msg.as_string())
+    conn.sendmail(frommail, tomail, msg.as_string())
     conn.quit()
 
 WRITE_COMMANDS = ["putfile", "rmfile"]
