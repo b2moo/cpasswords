@@ -13,6 +13,7 @@ import re
 import random
 import string
 import datetime
+import gnupg
 try:
     import clientconfig as config
 except ImportError:
@@ -33,6 +34,16 @@ GPG_ARGS = {
     'fingerprint': ['--fingerprint'],
     'receive-keys': ['--recv-keys'],
     }
+GPG_TRUSTLEVELS = {
+                    u"-" : (u"inconnue", False),
+                    u"n" : (u"nulle", False),
+                    u"m" : (u"marginale", True),
+                    u"f" : (u"entière", True),
+                    u"u" : (u"ultime", True),
+                    u"r" : (u"révoquée", False),
+                    u"e" : (u"expirée", False),
+                    u"q" : (u"/données insuffisantes/", False),
+                  }
 
 DEBUG = False
 VERB = False
@@ -159,17 +170,30 @@ def check_keys():
     """Vérifie les clés existantes"""
 
     keys = all_keys()
-
-    for mail, key in keys.values():
-        if key:
-            _, stdout = gpg("fingerprint", [key])
-            if VERB:   print "Checking %s" % mail
-            if str("<%s>" % mail.lower()) not in stdout.read().lower():
-                if VERB:   print "-->Fail on %s" % mail
-                break
-    else:
-        return True
-    return False
+    gpg = gnupg.GPG(gnupghome='~/.gnupg')
+    localkeys = gpg.list_keys()
+    failed = False
+    for (mail, fpr) in keys.values():
+        if fpr:
+            if VERB:   print "Checking %s" % (mail)
+            corresponds = [key for key in localkeys if key["fingerprint"] == fpr]
+            # On vérifie qu'on possède la clé…
+            if len(corresponds) == 1:
+                correspond = corresponds[0]
+                # …qu'elle correspond au mail…
+                if mail.lower() in sum([re.findall("<(.*)>", uid.lower()) for uid in correspond["uids"]], []):
+                    meaning, trustvalue = GPG_TRUSTLEVELS[correspond["trust"]]
+                    # … et qu'on lui fait confiance
+                    if not trustvalue:
+                        print (u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (meaning,)).encode("utf-8")
+                        failed = True
+                else:
+                    print (u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8")
+                    failed = True
+            else:
+                print (u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8")
+                failed = True
+    return not failed
 
 def get_recipients_of_roles(roles):
     """Renvoie les destinataires d'un rôle"""
@@ -184,8 +208,8 @@ def get_recipients_of_roles(roles):
 def get_dest_of_roles(roles):
     """ Summarize recipients of a role """
     allkeys = all_keys()
-    return ["%s (%s)" % (rec, allkeys[rec]) for rec in \
-        get_recipients_of_roles(roles) if allkeys[rec]]
+    return ["%s : %s (%s)" % (rec, allkeys[rec][0], allkeys[rec][1])
+               for rec in get_recipients_of_roles(roles) if allkeys[rec][1]]
 
 def encrypt(roles, contents):
     """Chiffre le contenu pour les roles donnés"""
@@ -193,14 +217,14 @@ def encrypt(roles, contents):
     allkeys = all_keys()
     recipients = get_recipients_of_roles(roles)
     
-    email_recipients = []
+    fpr_recipients = []
     for recipient in recipients:
-        key = allkeys[recipient]
-        if key:
-            email_recipients.append("-r")
-            email_recipients.append(key)
+        fpr = allkeys[recipient][1]
+        if fpr:
+            fpr_recipients.append("-r")
+            fpr_recipients.append(fpr)
 
-    stdin, stdout = gpg("encrypt", email_recipients)
+    stdin, stdout = gpg("encrypt", fpr_recipients)
     stdin.write(contents)
     stdin.close()
     out = stdout.read()
@@ -406,7 +430,7 @@ def remove_file(fname):
     
 
 def my_check_keys():
-    check_keys() and "Base de clés ok" or "Erreurs dans la base"
+    print (check_keys() and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8")
 
 def my_update_keys():
     print update_keys()

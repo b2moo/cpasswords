@@ -21,26 +21,46 @@ DEST_MAIL = "root@crans.org"
 
 
 KEYS = {
-    'aza-vallina': None,
-    'becue': '0D442664194974E2',
-    'blockelet': '5314C173AF087A52',
-    'boilard': 'C1690AB9C39EB6F4',
-    'cauderlier': None,
-    'chambart': '43680A46F2530FCE',
-    'dandrimont': 'B8E5087766475AAF',
-    'dimino': '1E8A30532127F85A',
-    'dstan': 'BC9BF8456E1C820B',
-    'durand-gasselin': '30F01C448E96ACDA',
-    'glondu': '7853DA4D49881AD3',
-    'huber': '1EF81A95E0DCF376',
-    'iffrig': '18068DEA354B0045',
-    'lagorce': '9D9D7CE70BF3708E',
-    'legallic': '3602E1C9A94025B0',
-    'maioli': None,
-    'parret-freaud': '13AC8F777D980513',
-    'samir': 'C86AD2AA41C2B76B',
-    'tvincent': '1C6BE33AC5C4ACC0'
-    }
+    'aza-vallina': ('Damien.Aza-Vallina@crans.org', None),
+    'becue': ('becue@crans.org', '9AE04D986400E3B67528F4930D442664194974E2'),
+    'blockelet': ('blockelet@crans.org', '550A057BC913EA4637D250495314C173AF087A52'),
+    'boilard': ('boilard@crans.org', 'E73A648AAB5E81BE38038350C1690AB9C39EB6F4'),
+    'cauderlier': ('cauderlier@crans.org', None),
+    'chambart': ('pierre.chambart@crans.org', '085D0DFB66EAF9448C42979C43680A46F2530FCE'),
+    'dandrimont': ('nicolas.dandrimont@crans.org', '791F12396630DD71FD364375B8E5087766475AAF'),
+    'dimino': ('jdimino@dptinfo.ens-cachan.fr', '2C938EAC93A16F8129F807C81E8A30532127F85A'),
+    'dstan': ('daniel.stan@crans.org', '90520CFDE846E7651A1B751FBC9BF8456E1C820B'),
+    'durand-gasselin': ('adg@crans.org', 'B3EA34ED8A4EA3B5C3E6C04D30F01C448E96ACDA'),
+    'glondu': ('Stephane.Glondu@crans.org', '58EB0999C64E897EE894B8037853DA4D49881AD3'),
+    'huber': ('olivier.huber@crans.org', '3E9473AF796C530F9C4DE7DB1EF81A95E0DCF376'),
+    'iffrig': ('iffrig@crans.org', '26A210E2584208FEF6BE8F3718068DEA354B0045'),
+    'lagorce': ('xavier.lagorce@crans.org', '08C26F5AABC5570E5E2F52B39D9D7CE70BF3708E'),
+    'legallic': ('legallic@crans.org', '4BDD2DC3F10C26B9BC3B0BD93602E1C9A94025B0'),
+    'maioli': ('maioli@crans.org', None),
+    'parret-freaud': ('parret-freaud@crans.org', 'A93D3EB37C3669F89C01F9AE13AC8F777D980513'),
+    'samir': ('samir@crans.org', 'C7B8823E96E8DC2798970340C86AD2AA41C2B76B'),
+    'tvincent': ('vincent.thomas@crans.org', 'DFB04CE4394B1115C587AE101C6BE33AC5C4ACC0'),
+#Autogen
+    'besson': ('lbesson@ens-cachan.fr', None),#'BF105A8DC75491B9D6EDAC5D01AACDB9C108F8A0',
+    'tilquin': ('tilquin@crans.org', None),
+    'pvincent': ('pvincent@crans.org', None),
+    'pommeret': ('pommeret@crans.org', '8D9C890BD2B783A052DBE71405504FF0CF875FE1'),
+    'lasseri': ('lasseri@crans.org', '31EF775095485A1CA4CC7CAAA2A902AE80403321'),
+    'moisy-mabille': ('moisy-mabille@crans.org', None),
+    'guiraud': ('guiraud@crans.org', None),
+    'soret': ('soret@crans.org', None),
+    'serrano': ('serrano@crans.org', '64ABC0C087EDAA14B79F5F7DEDE22762F030FDC5'),
+    'kherouf': ('kherouf@crans.org', None),
+    'baste': ('baste@crans.org', None),
+    'quelennec': ('quelennec@crans.org', None),
+    'grande': ('grande@crans.org', None),
+    'gstalter': ('gstalter@crans.org', None),
+    'duplouy': ('duplouy@crans.org', None),
+    'randazzo': ('randazzo@crans.org', None),
+    'epalle': ('epalle@crans.org', None),
+    'bonaque': ('bonaque@crans.org', None),
+    'kviard': ('kviard@crans.org', None)
+}
 
 # Les variables suivantes sont utilisées pour définir le dictionnaire des
 # rôles.
@@ -65,10 +85,10 @@ NOUNOUS=RTC+[
     "legallic",
     ]
 
+# Autogen:
+APPRENTIS=['grande', 'bonaque', 'moisy-mabille', 'baste', 'duplouy', 'besson', 'pvincent', 'quelennec', 'pommeret', 'guiraud', 'serrano', 'kherouf', 'randazzo', 'tilquin', 'lasseri', 'epalle', 'soret', 'gstalter', 'kviard']
+
 CA=[
-    "samir",
-    "iffrig",
-    "cauderlier",
 ]
 
 ## Les vrais rôles !
@@ -77,4 +97,6 @@ ROLES = {
     "ca-w": CA,
     "nounous": NOUNOUS,
     "nounous-w": NOUNOUS,
+    "apprentis-w": NOUNOUS,
+    "apprentis": NOUNOUS + APPRENTIS,
     }
