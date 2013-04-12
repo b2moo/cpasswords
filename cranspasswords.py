@@ -297,7 +297,7 @@ def editor(texte, annotations=""):
 
 def show_files():
     """Affiche la liste des fichiers disponibles sur le serveur distant"""
-    print """Liste des fichiers disponibles"""
+    print """Liste des fichiers disponibles :"""
     my_roles = get_my_roles()
     files = all_files()
     keys = files.keys()
@@ -310,14 +310,14 @@ def show_files():
     
 def show_roles():
     """Affiche la liste des roles existants"""
-    print """Liste des roles disponibles"""
+    print """Liste des roles disponibles :"""
     for role in all_roles().keys():
         if not role.endswith('-w'):
             print " * " + role 
 
 def show_servers():
     """Affiche la liste des serveurs disponibles"""
-    print """Liste des serveurs disponibles"""
+    print """Liste des serveurs disponibles :"""
     for server in config.servers.keys():
         print " * " + server
 
