@@ -23,9 +23,7 @@ _cranspasswords_completion(){
   cur="${COMP_WORDS[argc]}"
   cur_first_char=${cur:0:1}
   opts_short="-h -v -c -f -l"
-  opts="--help --server --verbose --clipboard --noclipboard --force --edit --view --remove --list --check-keys --update-keys --list-roles --recrypt-roles --roles --list-servers"
-  
-  
+  opts="--help --server --verbose --clipboard --noclipboard --force --edit --view --remove --list --check-keys --update-keys --list-roles --recrypt-files --roles --list-servers"
   mkdir -p -m 700  "$role_dir"
   mkdir -p -m 700 "$pass_dir"
   

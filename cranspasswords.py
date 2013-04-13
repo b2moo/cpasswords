@@ -448,7 +448,7 @@ def my_update_keys():
     """Met à jour les clés existantes et affiche le résultat"""
     print update_keys().encode("utf-8")
 
-def update_role():
+def recrypt_files():
     """Rechiffre les fichiers"""
     roles = None
     my_roles = get_my_roles()
@@ -479,14 +479,14 @@ def parse_roles(strroles):
             return False
         if role.endswith('-w'):
             print (u"Le rôle %s ne devrait pas être utilisé ! (utilisez %s)"
-                   % (role,role[:-2])).encode("utf-8")
+                   % (role, role[:-2])).encode("utf-8")
             return False
         writable = writable or role in my_roles_w
         ret.add(role)
     
     if not FORCED and not writable:
         if not confirm(u"""Vous vous apprêtez à perdre vos droits d'écritures\
-(role ne contient pas %s) sur ce fichier, continuer ?""" %
+(ROLES ne contient pas %s) sur ce fichier, continuer ?""" %
             ", ".join(my_roles_w)):
             return False
     return list(ret)
@@ -531,8 +531,8 @@ if __name__ == "__main__":
     action_grp.add_argument('--list-servers', action='store_const', dest='action',
         default=show_file, const=show_servers,
         help="Lister les serveurs")
-    action_grp.add_argument('--recrypt-role', action='store_const', dest='action',
-        default=show_file, const=update_role,
+    action_grp.add_argument('--recrypt-files', action='store_const', dest='action',
+        default=show_file, const=recrypt_files,
         help="Rechiffrer les mots de passe")
 
     parser.add_argument('--roles', nargs='?', default=None,
