@@ -70,9 +70,9 @@ def gpg(command, args = None):
     if args:
         full_command.extend(args)
     if VERB:
-        stderr=sys.stderr
+        stderr = sys.stderr
     else:
-        stderr=subprocess.PIPE
+        stderr = subprocess.PIPE
         full_command.extend(['--debug-level=1'])
     #print full_command
     proc = subprocess.Popen(full_command,
@@ -163,7 +163,7 @@ def gen_password():
     random.seed(datetime.datetime.now().microsecond)
     chars = string.letters + string.digits + '/=+*'
     length = 15
-    return ''.join([random.choice(chars) for _ in xrange(length)])
+    return u''.join([random.choice(chars) for _ in xrange(length)])
 
 ######
 ## Local commands
@@ -174,36 +174,35 @@ def update_keys():
     keys = all_keys()
     
     _, stdout = gpg("receive-keys", [key for _, key in keys.values() if key])
-    return stdout.read()
+    return stdout.read().decode("utf-8")
 
 def check_keys():
     """Vérifie les clés existantes"""
-    print "Who cares ?"
-#    keys = all_keys()
-#    gpg = gnupg.GPG(gnupghome='~/.gnupg')
-#    localkeys = gpg.list_keys()
-#    failed = False
-#    for (mail, fpr) in keys.values():
-#        if fpr:
-#            if VERB:   print "Checking %s" % (mail)
-#            corresponds = [key for key in localkeys if key["fingerprint"] == fpr]
-#            # On vérifie qu'on possède la clé…
-#            if len(corresponds) == 1:
-#                correspond = corresponds[0]
-#                # …qu'elle correspond au mail…
-#                if mail.lower() in sum([re.findall("<(.*)>", uid.lower()) for uid in correspond["uids"]], []):
-#                    meaning, trustvalue = GPG_TRUSTLEVELS[correspond["trust"]]
-#                    # … et qu'on lui fait confiance
-#                    if not trustvalue:
-#                        print (u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (meaning,)).encode("utf-8")
-#                        failed = True
-#                else:
-#                    print (u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8")
-#                    failed = True
-#            else:
-#                print (u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8")
-#                failed = True
-#    return not failed
+    keys = all_keys()
+    gpg = gnupg.GPG(gnupghome='~/.gnupg')
+    localkeys = gpg.list_keys()
+    failed = False
+    for (mail, fpr) in keys.values():
+        if fpr:
+            if VERB:   print (u"Checking %s" % (mail)).encode("utf-8")
+            corresponds = [key for key in localkeys if key["fingerprint"] == fpr]
+            # On vérifie qu'on possède la clé…
+            if len(corresponds) == 1:
+                correspond = corresponds[0]
+                # …qu'elle correspond au mail…
+                if mail.lower() in sum([re.findall("<(.*)>", uid.lower()) for uid in correspond["uids"]], []):
+                    meaning, trustvalue = GPG_TRUSTLEVELS[correspond["trust"]]
+                    # … et qu'on lui fait confiance
+                    if not trustvalue:
+                        print (u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (meaning,)).encode("utf-8")
+                        failed = True
+                else:
+                    print (u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8")
+                    failed = True
+            else:
+                print (u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8")
+                failed = True
+    return not failed
 
 def get_recipients_of_roles(roles):
     """Renvoie les destinataires d'un rôle"""
@@ -212,13 +211,12 @@ def get_recipients_of_roles(roles):
     for role in roles:
         for recipient in allroles[role]:
             recipients.add(recipient)
-    
     return recipients
 
 def get_dest_of_roles(roles):
     """Renvoie la liste des "username : mail (fingerprint)" """
     allkeys = all_keys()
-    return ["%s : %s (%s)" % (rec, allkeys[rec][0], allkeys[rec][1])
+    return [u"%s : %s (%s)" % (rec, allkeys[rec][0], allkeys[rec][1])
                for rec in get_recipients_of_roles(roles) if allkeys[rec][1]]
 
 def encrypt(roles, contents):
@@ -235,11 +233,11 @@ def encrypt(roles, contents):
             fpr_recipients.append(fpr)
     
     stdin, stdout = gpg("encrypt", fpr_recipients)
-    stdin.write(contents)
+    stdin.write(contents.encode("utf-8"))
     stdin.close()
-    out = stdout.read()
+    out = stdout.read().decode("utf-8")
     if out == '':
-        if VERB: print "Échec de chiffrement"
+        if VERB: print u"Échec de chiffrement".encode("utf-8")
         return None
     else:
         return out
@@ -247,9 +245,9 @@ def encrypt(roles, contents):
 def decrypt(contents):
     """Déchiffre le contenu"""
     stdin, stdout = gpg("decrypt")
-    stdin.write(contents)
+    stdin.write(contents.encode("utf-8"))
     stdin.close()
-    return stdout.read()
+    return stdout.read().decode("utf-8")
 
 def put_password(name, roles, contents):
     """Dépose le mot de passe après l'avoir chiffré pour les
@@ -258,7 +256,7 @@ def put_password(name, roles, contents):
     if NROLES != None:
         roles = NROLES
         if VERB:
-            print "Pas de nouveaux rôles"
+            print u"Pas de nouveaux rôles".encode("utf-8")
     if enc_pwd <> None:
         return put_file(name, roles, enc_pwd)
     else:
@@ -272,7 +270,7 @@ def get_password(name):
 ######
 ## Interface
 
-def editor(texte, annotations=""):
+def editor(texte, annotations=u""):
     """ Lance $EDITOR sur texte.
     Renvoie le nouveau texte si des modifications ont été apportées, ou None
     """
@@ -281,23 +279,23 @@ def editor(texte, annotations=""):
     # for annotations ...
     f = tempfile.NamedTemporaryFile(suffix='.txt')
     atexit.register(f.close)
-    f.write(texte)
-    for l in annotations.split('\n'):
-        f.write("# %s\n" % l.encode('utf-8'))
+    if annotations:
+        annotations = "# " + annotations.replace("\n", "\n# ")
+    f.write((texte + "\n" + annotations).encode("utf-8"))
     f.flush()
     proc = subprocess.Popen([os.getenv('EDITOR', '/usr/bin/editor'), f.name])
     os.waitpid(proc.pid, 0)
     f.seek(0)
-    ntexte = f.read()
+    ntexte = f.read().decode("utf-8")
     f.close()
-    ntexte = '\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
+    ntexte = u'\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
     if texte != ntexte:
         return ntexte
     return None
 
 def show_files():
     """Affiche la liste des fichiers disponibles sur le serveur distant"""
-    print """Liste des fichiers disponibles :"""
+    print u"Liste des fichiers disponibles :".encode("utf-8")
     my_roles = get_my_roles()
     files = all_files()
     keys = files.keys()
@@ -310,16 +308,16 @@ def show_files():
     
 def show_roles():
     """Affiche la liste des roles existants"""
-    print """Liste des roles disponibles :"""
+    print u"Liste des roles disponibles".encode("utf-8")
     for role in all_roles().keys():
         if not role.endswith('-w'):
-            print " * " + role 
+            print (u" * " + role ).encode("utf-8")
 
 def show_servers():
     """Affiche la liste des serveurs disponibles"""
-    print """Liste des serveurs disponibles :"""
+    print u"Liste des serveurs disponibles".encode("utf-8")
     for server in config.servers.keys():
-        print " * " + server
+        print (u" * " + server).encode("utf-8")
 
 old_clipboard = None
 def saveclipboard(restore=False):
@@ -333,7 +331,7 @@ def saveclipboard(restore=False):
     if not restore:
         old_clipboard = proc.stdout.read()
     else:
-        raw_input("Appuyez sur Entrée pour récupérer le contenu précédent du presse papier.")
+        raw_input(u"Appuyez sur Entrée pour récupérer le contenu précédent du presse papier.".encode("utf-8"))
         proc.stdin.write(old_clipboard)
     proc.stdin.close()
     proc.stdout.close()
@@ -343,37 +341,35 @@ def clipboard(texte):
     saveclipboard()
     proc =subprocess.Popen(['xclip', '-selection', 'clipboard'],\
         stdin=subprocess.PIPE, stdout=sys.stdout, stderr=sys.stderr)
-    proc.stdin.write(texte)
+    proc.stdin.write(texte.encode("utf-8"))
     proc.stdin.close()
-    return "[Le mot de passe a été mis dans le presse papier]"
+    return u"[Le mot de passe a été mis dans le presse papier]"
 
 
 def show_file(fname):
     """Affiche le contenu d'un fichier"""
     value = get_file(fname)
     if value == False:
-        print "Fichier introuvable"
+        print u"Fichier introuvable".encode("utf-8")
         return
     (sin, sout) = gpg('decrypt')
-    sin.write(value['contents'])
+    sin.write(value['contents'].encode("utf-8"))
     sin.close()
-    texte = sout.read()
-    ntexte = ""
+    texte = sout.read().decode("utf-8")
+    ntexte = u""
     hidden = False  # Est-ce que le mot de passe a été caché ?
     lines = texte.split('\n')
     for line in lines:
         catchPass = PASS.match(line)
         if catchPass != None and CLIPBOARD:
-            hidden=True
+            hidden = True
             line = clipboard(catchPass.group(1))
         ntexte += line + '\n'
     showbin = "cat" if hidden else "less"
     proc = subprocess.Popen(showbin, stdin=subprocess.PIPE, shell=True)
     out = proc.stdin
-    out.write("Fichier %s:\n\n" % (fname,))
-    out.write(ntexte)
-    out.write("-----\n")
-    out.write("Visible par: %s\n" % ','.join(value['roles']))
+    raw = u"Fichier %s:\n\n%s-----\nVisible par: %s\n" % (fname, ntexte, ','.join(value['roles']))
+    out.write(raw.encode("utf-8"))
     out.close()
     os.waitpid(proc.pid, 0)
 
@@ -385,26 +381,26 @@ def edit_file(fname):
     annotations = u""
     if value == False:
         nfile = True
-        print "Fichier introuvable"
+        print u"Fichier introuvable".encode("utf-8")
         if not confirm("Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
 aléatoire, pensez à rajouter une ligne "login: ${login}"
 Enregistrez le fichier vide pour annuler.\n"""
-        texte = "pass: %s\n" % gen_password()
+        texte = u"pass: %s\n" % gen_password()
         roles = get_my_roles()
         # Par défaut les roles d'un fichier sont ceux en écriture de son
         # créateur
         roles = [ r[:-2] for r in roles if r.endswith('-w') ]
         if roles == []:
-            print "Vous ne possédez aucun rôle en écriture ! Abandon."
+            print u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8")
             return
         value = {'roles' : roles}
     else:
         (sin, sout) = gpg('decrypt')
-        sin.write(value['contents'])
+        sin.write(value['contents'].encode("utf-8"))
         sin.close()
-        texte = sout.read()
+        texte = sout.read().decode("utf-8")
     value['roles'] = NROLES or value['roles']
 
     annotations += u"""Ce fichier sera chiffré pour les rôles suivants :\n%s\n
@@ -416,19 +412,19 @@ C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
     ntexte = editor(texte, annotations)
 
     if ntexte == None and not nfile and NROLES == None:
-        print "Pas de modifications effectuées"
+        print u"Pas de modifications effectuées".encode("utf-8")
     else:
         ntexte = texte if ntexte == None else ntexte
         if put_password(fname, value['roles'], ntexte):
-            print "Modifications enregistrées"
+            print u"Modifications enregistrées".encode("utf-8")
         else:
-            print "Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)"
+            print u"Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)".encode("utf-8")
 
 def confirm(text):
     """Demande confirmation, sauf si on est mode ``FORCED``"""
     if FORCED: return True
     while True:
-        out = raw_input(text + ' (O/N)').lower()
+        out = raw_input((text + ' (O/N)').encode("utf-8")).lower()
         if out == 'o':
             return True
         elif out == 'n':
@@ -436,12 +432,12 @@ def confirm(text):
 
 def remove_file(fname):
     """Supprime un fichier"""
-    if not confirm('Êtes-vous sûr de vouloir supprimer %s ?' % fname):
+    if not confirm((u'Êtes-vous sûr de vouloir supprimer %s ?' % fname).encode("utf-8")):
         return
     if rm_file(fname):
-        print "Suppression effectuée"
+        print u"Suppression effectuée".encode("utf-8")
     else:
-        print "Erreur de suppression (avez-vous les droits ?)"
+        print u"Erreur de suppression (avez-vous les droits ?)".encode("utf-8")
 
 
 def my_check_keys():
@@ -450,7 +446,7 @@ def my_check_keys():
 
 def my_update_keys():
     """Met à jour les clés existantes et affiche le résultat"""
-    print update_keys()
+    print update_keys().encode("utf-8")
 
 def update_role():
     """Rechiffre les fichiers"""
@@ -465,7 +461,7 @@ def update_role():
     for (fname, froles) in all_files().iteritems():
         if set(roles).intersection(froles) == set([]):
             continue
-        print "Rechiffrement de %s" % fname
+        print (u"Rechiffrement de %s" % fname).encode("utf-8")
         put_password(fname, froles, get_password(fname))
 
 def parse_roles(strroles):
@@ -478,17 +474,17 @@ def parse_roles(strroles):
     writable = False
     for role in strroles.split(','):
         if role not in roles.keys():
-            print("Le rôle %s n'existe pas !" % role)
+            print (u"Le rôle %s n'existe pas !" % role).encode("utf-8")
             return False
         if role.endswith('-w'):
-            print("Le rôle %s ne devrait pas être utilisé ! (utilisez %s)"
-                % (role,role[:-2]))
+            print (u"Le rôle %s ne devrait pas être utilisé ! (utilisez %s)"
+                   % (role,role[:-2])).encode("utf-8")
             return False
         writable = writable or role in my_roles_w
         ret.add(role)
     
     if not FORCED and not writable:
-        if not confirm("""Vous vous apprêtez à perdre vos droits d'écritures\
+        if not confirm(u"""Vous vous apprêtez à perdre vos droits d'écritures\
 (role ne contient pas %s) sur ce fichier, continuer ?""" %
             ", ".join(my_roles_w)):
             return False
@@ -555,7 +551,7 @@ if __name__ == "__main__":
         if parsed.action.func_code.co_argcount == 0:
             parsed.action()
         elif parsed.fname == None:
-            print("Vous devez fournir un nom de fichier avec cette commande")
+            print u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8")
             parser.print_help()
         else:
             parsed.action(parsed.fname)

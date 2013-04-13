@@ -92,11 +92,10 @@ def putfile(filename):
     else:
         if not validate(oldroles,'w'):
             return False
-    
-        backup(filename, old)
-        notification(u"Modification de %s" % filename,
-            u"Le fichier %s a été modifié par %s." % (filename, MYUID),
-            filename, old)
+        
+        corps = u"Le fichier %s a été modifié par %s." % (filename, MYUID)
+        backup(corps, filename, old)
+        notification(u"Modification de %s" % filename, corps, filename, old)
     
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
     return True
@@ -110,21 +109,20 @@ def rmfile(filename):
         return True
     else:
         if validate(roles,'w'):
-            backup(filename, old)
-            notification(u"Suppression de %s" % filename,
-                u"Le fichier %s a été supprimé par %s." % (filename, MYUID),
-                filename, old)
+            corps = u"Le fichier %s a été supprimé par %s." % (filename, MYUID)
+            backup(corps, filename, old)
+            notification(u"Suppression de %s" % filename, corps, filename, old)
             os.remove(getpath(filename))
         else:
             return False
     return True
 
-def backup(fname, old):
+def backup(corps, fname, old):
     """Backupe l'ancienne version du fichier"""
     back = open(getpath(fname, backup=True), 'a')
     back.write(json.dumps(old))
     back.write('\n')
-    back.write('* %s: %s\n' % (str(datetime.datetime.now()),corps)) 
+    back.write((u'* %s: %s\n' % (str(datetime.datetime.now()), corps)).encode("utf-8"))
     back.close()
 
 def notification(subject, corps, fname, old):
