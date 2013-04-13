@@ -66,10 +66,10 @@ def getfile(filename):
     try:
         obj = json.loads(open(filepath).read())
         if not validate(obj['roles']):
-	        return False
-        return obj
+	        return [False, u"Vous n'avez pas les droits de lecture sur le fichier %s." % filename]
+        return [True, obj]
     except IOError:
-        return False
+        return [False, u"Le fichier %s n'existe pas." % filename]
      
 
 def putfile(filename):
@@ -81,41 +81,38 @@ def putfile(filename):
         roles = parsed_stdin['roles']
         contents = parsed_stdin['contents']
     except KeyError:
-        return False
+        return [False, u"Entrée invalide"]
     
-    try:
-        old = getfile(filename)
-        oldroles = old['roles']
-    except TypeError:
+    gotit, old = getfile(filename)
+    if not gotit:
         old = u"[Création du fichier]"
         pass
     else:
-        if not validate(oldroles,'w'):
-            return False
-        
-        corps = u"Le fichier %s a été modifié par %s." % (filename, MYUID)
-        backup(corps, filename, old)
-        notification(u"Modification de %s" % filename, corps, filename, old)
+        oldroles = old['roles']
+        if not validate(oldroles, 'w'):
+            return [False, u"Vous n'avez pas le droit d'écriture sur %s." % filename]
+    
+    corps = u"Le fichier %s a été modifié par %s." % (filename, MYUID)
+    backup(corps, filename, old)
+    notification(u"Modification de %s" % filename, corps, filename, old)
     
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
-    return True
+    return [True, u"Modification effectuée."]
 
 def rmfile(filename):
     """Supprime le fichier filename après avoir vérifié les droits sur le fichier"""
-    try:
-        old = getfile(filename)
-        roles = old['roles']
-    except TypeError:
-        return True
+    gotit, old = getfile(filename)
+    if not gotit:
+        return old # contient le message d'erreur
+    roles = old['roles']
+    if validate(roles, 'w'):
+        corps = u"Le fichier %s a été supprimé par %s." % (filename, MYUID)
+        backup(corps, filename, old)
+        notification(u"Suppression de %s" % filename, corps, filename, old)
+        os.remove(getpath(filename))
     else:
-        if validate(roles,'w'):
-            corps = u"Le fichier %s a été supprimé par %s." % (filename, MYUID)
-            backup(corps, filename, old)
-            notification(u"Suppression de %s" % filename, corps, filename, old)
-            os.remove(getpath(filename))
-        else:
-            return False
-    return True
+        return u"Vous n'avez pas les droits d'écriture sur le fichier %s." % filename
+    return u"Suppression effectuée"
 
 def backup(corps, fname, old):
     """Backupe l'ancienne version du fichier"""

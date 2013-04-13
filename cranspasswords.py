@@ -55,7 +55,7 @@ GPG_TRUSTLEVELS = {
 VERB = False
 #: Par défaut, place-t-on le mdp dans le presse-papier ?
 CLIPBOARD = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
-#: Mode «ne pas demaner confirmation»
+#: Mode «ne pas demander confirmation»
 FORCED = False
 #: Droits à définir sur le fichier en édition
 NROLES = None
@@ -264,8 +264,10 @@ def put_password(name, roles, contents):
 
 def get_password(name):
     """Récupère le mot de passe donné par name"""
-    remotefile = get_file(name)
-    return decrypt(remotefile['contents'])
+    gotit, remotefile = get_file(name)
+    if gotit:
+        remotefile = decrypt(remotefile['contents'])
+    return [gotit, remotefile]
 
 ######
 ## Interface
@@ -289,9 +291,7 @@ def editor(texte, annotations=u""):
     ntexte = f.read().decode("utf-8")
     f.close()
     ntexte = u'\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
-    if texte != ntexte:
-        return ntexte
-    return None
+    return ntexte
 
 def show_files():
     """Affiche la liste des fichiers disponibles sur le serveur distant"""
@@ -309,9 +309,9 @@ def show_files():
 def show_roles():
     """Affiche la liste des roles existants"""
     print u"Liste des roles disponibles".encode("utf-8")
-    for role in all_roles().keys():
+    for (role, usernames) in all_roles().iteritems():
         if not role.endswith('-w'):
-            print (u" * " + role ).encode("utf-8")
+            print (u" * %s : %s" % (role, ", ".join(usernames))).encode("utf-8")
 
 def show_servers():
     """Affiche la liste des serveurs disponibles"""
@@ -348,9 +348,9 @@ def clipboard(texte):
 
 def show_file(fname):
     """Affiche le contenu d'un fichier"""
-    value = get_file(fname)
-    if value == False:
-        print u"Fichier introuvable".encode("utf-8")
+    gotit, value = get_file(fname)
+    if not gotit:
+        print value.encode("utf-8") # value contient le message d'erreur
         return
     (sin, sout) = gpg('decrypt')
     sin.write(value['contents'].encode("utf-8"))
@@ -376,13 +376,13 @@ def show_file(fname):
         
 def edit_file(fname):
     """Modifie/Crée un fichier"""
-    value = get_file(fname)
+    gotit, value = get_file(fname)
     nfile = False
     annotations = u""
-    if value == False:
+    if not gotit and not "pas les droits" in value:
         nfile = True
         print u"Fichier introuvable".encode("utf-8")
-        if not confirm("Créer fichier ?"):
+        if not confirm(u"Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
 aléatoire, pensez à rajouter une ligne "login: ${login}"
@@ -396,13 +396,16 @@ Enregistrez le fichier vide pour annuler.\n"""
             print u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8")
             return
         value = {'roles' : roles}
+    elif not gotit:
+        print value.encode("utf-8") # value contient le message d'erreur
+        return
     else:
         (sin, sout) = gpg('decrypt')
         sin.write(value['contents'].encode("utf-8"))
         sin.close()
         texte = sout.read().decode("utf-8")
     value['roles'] = NROLES or value['roles']
-
+    
     annotations += u"""Ce fichier sera chiffré pour les rôles suivants :\n%s\n
 C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
            ', '.join(value['roles']),
@@ -410,21 +413,20 @@ C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
         )
         
     ntexte = editor(texte, annotations)
-
-    if ntexte == None and not nfile and NROLES == None:
-        print u"Pas de modifications effectuées".encode("utf-8")
+    
+    if ((not nfile and ntexte in [u'', texte] and NROLES == None) or # Fichier existant vidé ou inchangé
+        (nfile and ntexte == u'')):                                  # Nouveau fichier créé vide
+        print u"Pas de modification effectuée".encode("utf-8")
     else:
         ntexte = texte if ntexte == None else ntexte
-        if put_password(fname, value['roles'], ntexte):
-            print u"Modifications enregistrées".encode("utf-8")
-        else:
-            print u"Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)".encode("utf-8")
+        success, message = put_password(fname, value['roles'], ntexte)
+        print message.encode("utf-8")
 
 def confirm(text):
     """Demande confirmation, sauf si on est mode ``FORCED``"""
     if FORCED: return True
     while True:
-        out = raw_input((text + ' (O/N)').encode("utf-8")).lower()
+        out = raw_input((text + u' (O/N)').encode("utf-8")).lower()
         if out == 'o':
             return True
         elif out == 'n':
@@ -432,12 +434,10 @@ def confirm(text):
 
 def remove_file(fname):
     """Supprime un fichier"""
-    if not confirm((u'Êtes-vous sûr de vouloir supprimer %s ?' % fname).encode("utf-8")):
+    if not confirm(u'Êtes-vous sûr de vouloir supprimer %s ?' % fname):
         return
-    if rm_file(fname):
-        print u"Suppression effectuée".encode("utf-8")
-    else:
-        print u"Erreur de suppression (avez-vous les droits ?)".encode("utf-8")
+    message = rm_file(fname)
+    print message.encode("utf-8")
 
 
 def my_check_keys():
@@ -462,7 +462,8 @@ def update_role():
         if set(roles).intersection(froles) == set([]):
             continue
         print (u"Rechiffrement de %s" % fname).encode("utf-8")
-        put_password(fname, froles, get_password(fname))
+        _, password = get_password(fname)
+        put_password(fname, froles, password)
 
 def parse_roles(strroles):
     """Interprête une liste de rôles fournie par l'utilisateur"""

@@ -65,11 +65,11 @@ KEYS = {
 
 #: Les variables suivantes sont utilisées pour définir le dictionnaire des
 #: rôles.
-RTC=[
-    "iffrig"
+RTC = [
+    "samir"
     ]
 #: Liste des usernames des nounous
-NOUNOUS=RTC+[
+NOUNOUS = RTC + [
     "blockelet",
     "becue",
     "dstan",
@@ -82,17 +82,45 @@ NOUNOUS=RTC+[
     "parret-freaud",
     "cauderlier",
     "maioli",
-    "samir",
+    "iffrig",
     "boilard",
     "legallic",
     ]
 
 # Autogen:
 #: Liste des usernames des apprentis
-APPRENTIS=['grande', 'bonaque', 'moisy-mabille', 'baste', 'duplouy', 'besson', 'pvincent', 'quelennec', 'pommeret', 'guiraud', 'serrano', 'kherouf', 'randazzo', 'tilquin', 'lasseri', 'epalle', 'soret', 'gstalter', 'kviard']
+APPRENTIS = [
+    'grande',
+    'bonaque',
+    'moisy-mabille',
+    'baste',
+    'duplouy',
+    'besson',
+    'pvincent',
+    'quelennec',
+    'pommeret',
+    'guiraud',
+    'serrano',
+    'kherouf',
+    'randazzo',
+    'tilquin',
+    'lasseri',
+    'epalle',
+    'soret',
+    'gstalter',
+    'kviard']
 
 #: Liste des usernames des membres du CA
-CA=[
+CA = [
+    "becue",
+    "duplouy",
+    "epalle",
+    "guiraud",
+    "lajus",
+    "lasseri",
+    "lerisson",
+    "randazzo",
+    "soret",
 ]
 
 #: Les roles utilisés pour savoir qui a le droit le lire/écrire quoi
@@ -101,6 +129,6 @@ ROLES = {
     "ca-w": CA,
     "nounous": NOUNOUS,
     "nounous-w": NOUNOUS,
-    "apprentis-w": NOUNOUS,
     "apprentis": NOUNOUS + APPRENTIS,
+    "apprentis-w": NOUNOUS,
     }
