@@ -73,22 +73,20 @@ def getfile(filename):
         obj = json.loads(open(filepath).read())
         if not validate(obj['roles']):
 	        return [False, u"Vous n'avez pas les droits de lecture sur le fichier %s." % filename]
+        obj["filename"] = filename
         return [True, obj]
     except IOError:
         return [False, u"Le fichier %s n'existe pas." % filename]
      
 
-def putfile(filename):
-    """Écrit le fichier ``filename`` avec les données reçues sur stdin."""
-    filepath = getpath(filename)
+def getfiles():
+    """Récupère plusieurs fichiers, lit la liste des filenames demandés sur stdin"""
     stdin = sys.stdin.read()
-    parsed_stdin = json.loads(stdin)
-    try:
-        roles = parsed_stdin['roles']
-        contents = parsed_stdin['contents']
-    except KeyError:
-        return [False, u"Entrée invalide"]
-    
+    filenames = json.loads(stdin)
+    return [getfile(f) for f in filenames]
+
+def _putfile(filename, roles, contents):
+    """Écrit ``contents`` avec les roles ``roles`` dans le fichier ``filename``"""
     gotit, old = getfile(filename)
     if not gotit:
         old = u"[Création du fichier]"
@@ -102,8 +100,37 @@ def putfile(filename):
     backup(corps, filename, old)
     notification(u"Modification de %s" % filename, corps, filename, old)
     
+    filepath = getpath(filename)
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
     return [True, u"Modification effectuée."]
+
+def putfile(filename):
+    """Écrit le fichier ``filename`` avec les données reçues sur stdin."""
+    stdin = sys.stdin.read()
+    parsed_stdin = json.loads(stdin)
+    try:
+        roles = parsed_stdin['roles']
+        contents = parsed_stdin['contents']
+    except KeyError:
+        return [False, u"Entrée invalide"]
+    return _putfile(filename, roles, contents)
+
+def putfiles():
+    """Écrit plusieurs fichiers. Lit les filenames sur l'entrée standard avec le reste."""
+    stdin = sys.stdin.read()
+    parsed_stdin = json.loads(stdin)
+    results = []
+    for fichier in parsed_stdin:
+        try:
+            filename = fichier['filename']
+            roles = fichier['roles']
+            contents = fichier['contents']
+        except KeyError:
+            results.append([False, u"Entrée invalide"])
+        else:
+            results.append(_putfile(filename, roles, contents))
+    return results
+
 
 def rmfile(filename):
     """Supprime le fichier filename après avoir vérifié les droits sur le fichier"""
@@ -119,6 +146,7 @@ def rmfile(filename):
     else:
         return u"Vous n'avez pas les droits d'écriture sur le fichier %s." % filename
     return u"Suppression effectuée"
+
 
 def backup(corps, fname, old):
     """Backupe l'ancienne version du fichier"""
@@ -168,8 +196,13 @@ if __name__ == "__main__":
         answer = listkeys()
     elif command == "listfiles":
         answer = listfiles()
+    elif command == "getfiles":
+        answer = getfiles()
+    elif command == "putfiles":
+        answer = putfiles()
     else:
         if not filename:
+            print("filename nécessaire pour cette opération", file=sys.stderr)
             sys.exit(1)
         if command == "getfile":
             answer = getfile(filename)
