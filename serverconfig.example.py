@@ -36,7 +36,9 @@ KEYS = {
     'huber': ('olivier.huber@crans.org', '3E9473AF796C530F9C4DE7DB1EF81A95E0DCF376'),
     'iffrig': ('iffrig@crans.org', '26A210E2584208FEF6BE8F3718068DEA354B0045'),
     'lagorce': ('xavier.lagorce@crans.org', '08C26F5AABC5570E5E2F52B39D9D7CE70BF3708E'),
+    'lajus': ('lajus@crans.org', None),
     'legallic': ('legallic@crans.org', '4BDD2DC3F10C26B9BC3B0BD93602E1C9A94025B0'),
+    'lerisson': ('lerisson@crans.org', None),
     'maioli': ('maioli@crans.org', None),
     'parret-freaud': ('parret-freaud@crans.org', 'A93D3EB37C3669F89C01F9AE13AC8F777D980513'),
     'samir': ('samir@crans.org', 'C7B8823E96E8DC2798970340C86AD2AA41C2B76B'),
@@ -68,6 +70,7 @@ KEYS = {
 RTC = [
     "samir"
     ]
+
 #: Liste des usernames des nounous
 NOUNOUS = RTC + [
     "blockelet",
@@ -121,7 +124,13 @@ CA = [
     "lerisson",
     "randazzo",
     "soret",
-]
+    ]
+
+#: Liste des trésoriers
+TRESORERIE = RTC + [
+    "soret",
+    "guiraud",
+    ]
 
 #: Les roles utilisés pour savoir qui a le droit le lire/écrire quoi
 ROLES = {
@@ -131,4 +140,6 @@ ROLES = {
     "nounous-w": NOUNOUS,
     "apprentis": NOUNOUS + APPRENTIS,
     "apprentis-w": NOUNOUS,
+    "tresorerie": TRESORERIE,
+    "tresorerie-w": TRESORERIE,
     }
