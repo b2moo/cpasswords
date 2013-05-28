@@ -496,7 +496,7 @@ def parse_roles(strroles):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="trousseau crans")
-    parser.add_argument('--server', default='default',
+    parser.add_argument('-s', '--server', default='default',
         help="Utilisation d'un serveur alternatif (test, backup, etc)")
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
         help="Mode verbeux")
