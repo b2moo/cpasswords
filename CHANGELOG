@@ -17,3 +17,14 @@ Si vous ne voulez pas réfléchir : passez sur la branche 0.1
 
 == version 0.1 ==
 1ère version de cranspasswords une fois passé à ce système de branches.
+
+Les version ci-dessous sont basée sur la version 0.1 et introduisent
+des modifications non backward-compatibles.
+=== 0.1.1 ===
+''Pour voir cette version, git show 0.1.1''
+
+La bash_complétion a changé pour ne plus hardcoder le nom cranspasswords
+
+Pour récupérer la bash_complétion comme avant :
+ * sourcer bash_completion et non plus cranspasswords_bash_completion
+ * exécuter quelque part "complete -F _cranspasswords_completion cranspasswords"
