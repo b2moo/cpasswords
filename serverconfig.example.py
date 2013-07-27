@@ -67,12 +67,12 @@ KEYS = {
 
 #: Les variables suivantes sont utilisées pour définir le dictionnaire des
 #: rôles.
-RTC = [
-    "samir"
+RTC=[
+    "iffrig"
     ]
 
 #: Liste des usernames des nounous
-NOUNOUS = RTC + [
+NOUNOUS=RTC+[
     "blockelet",
     "becue",
     "dstan",
@@ -85,33 +85,14 @@ NOUNOUS = RTC + [
     "parret-freaud",
     "cauderlier",
     "maioli",
-    "iffrig",
+    "samir",
     "boilard",
     "legallic",
     ]
 
 # Autogen:
 #: Liste des usernames des apprentis
-APPRENTIS = [
-    'grande',
-    'bonaque',
-    'moisy-mabille',
-    'baste',
-    'duplouy',
-    'besson',
-    'pvincent',
-    'quelennec',
-    'pommeret',
-    'guiraud',
-    'serrano',
-    'kherouf',
-    'randazzo',
-    'tilquin',
-    'lasseri',
-    'epalle',
-    'soret',
-    'gstalter',
-    'kviard']
+APPRENTIS=['grande', 'bonaque', 'moisy-mabille', 'baste', 'duplouy', 'besson', 'pvincent', 'quelennec', 'pommeret', 'guiraud', 'serrano', 'kherouf', 'randazzo', 'tilquin', 'lasseri', 'epalle', 'soret', 'gstalter', 'kviard']
 
 #: Liste des usernames des membres du CA
 CA = [
