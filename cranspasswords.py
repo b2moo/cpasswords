@@ -285,7 +285,7 @@ def editor(texte, annotations=""):
     for l in annotations.split('\n'):
         f.write("# %s\n" % l.encode('utf-8'))
     f.flush()
-    proc = subprocess.Popen(os.getenv('EDITOR') + ' ' + f.name, shell=True)
+    proc = subprocess.Popen([os.getenv('EDITOR', '/usr/bin/editor'), f.name])
     os.waitpid(proc.pid, 0)
     f.seek(0)
     ntexte = f.read()
