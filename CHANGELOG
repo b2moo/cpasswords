@@ -3,3 +3,14 @@ Explique les modifications entre les versions, surtout si on casse
 la backward-compatibility.
 
 
+== Disclaimer ==
+
+cranspasswords va maintenant posséder des branches.
+ * dev : ce qui est dedans a des chances d'être cassé.
+   Plein d'essais ou de trucs cools, mais si ça marche pas c'est normal.
+ * master : ça marche, mais c'est pas forcément backward-compatible.
+ * 0.1, 0.2,… : ça marche, ça n'intègre plus de nouvelles fonctionnalités,
+   seulement d'éventuels bugfix, et c'est backward-compatible.
+
+
+Si vous ne voulez pas réfléchir : passez sur la branche 0.1
