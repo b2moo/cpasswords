@@ -3,11 +3,15 @@ Ce dépôt git contient à la fois le programme client (à utiliser sur votre
 ordinateur) et le serveur.
 
 == Installation et configuration du client ==
- * Copier le dépôt git sur votre ordinateur :
+ * Copier le dépôt git sur votre machine :
     $ git clone git://git.crans.org/git/cranspasswords.git 
  * Copier clientconfig.example.py en clientconfig.py et adapter
    à vos besoins
  * Installer le package python-gnupg
  * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
  * ???
- 
+
+== Complétion ==
+ * Pour avoir la bash-complétion, dans votre .bashrc :
+  * Sourcez le fichier bash_completion présent dans le dépôt
+  * exécutez "complete -F _cranspasswords_completion <nom de votre commande>"
