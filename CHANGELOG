@@ -33,3 +33,9 @@ Pour récupérer la bash_complétion comme avant :
 ''Pour voir cette version, git show 0.1.2''
 
 Le fichier à exécuter n'est plus cranspasswords.py mais client.py
+
+=== 0.1.3 ===
+''Pour voir cette version, git show 0.1.3''
+
+Les fichiers de mdp ne sont plus stockés dans /root/cranspasswords/db/
+mais /var/lib/cranspasswords/db/.
