@@ -14,6 +14,9 @@ ssh_path = '/usr/bin/ssh'
 #: Path du script ``cmd_name``-server sur le serveur
 server_path = '/usr/local/bin/%s-server' % (cmd_name,)
 
+#: Commande à exécuter sur le serveur après y être entré en ssh
+distant_cmd = "sudo %s" % (server_path,)
+
 #: Username utilisé pour se loguer sur le serveur.
 #: Par défaut, prend la valeur de l'username sur le client,
 #: il faut donc le remplacer pour ceux qui n'ont pas le même username
@@ -29,11 +32,11 @@ username = os.getenv('USER')
 #: * ``'user'``: L'username sur le serveur
 servers = {
     'default': {
-        'server_cmd': [ssh_path, 'vert.adm.crans.org', server_path],
+        'server_cmd': [ssh_path, 'vert.adm.crans.org', distant_cmd],
         'user' : username
     },
     'ovh': {
-        'server_cmd': [ssh_path, 'ovh.crans.org', server_path],
+        'server_cmd': [ssh_path, 'ovh.crans.org', distant_cmd],
         'user' : username
     }
 }
