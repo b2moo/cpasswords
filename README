@@ -4,19 +4,17 @@ ordinateur) et le serveur.
 
 == Nom de la commande ==
 Si vous voulez appeler votre commande autrement que "cranspasswords",
-c'est possible. Il faut pour cela changer la variable cmd_name dans :
- * serverconfig(.example)?.py
- * clientconfig(.example)?.py
- * server
+c'est possible. Il faut pour cela changer la variable cmd_name dans le Makefile
+avant de lancer make install.
 
 == Installation et configuration du client ==
  * Copier le dépôt git sur votre machine :
     $ git clone git://git.crans.org/git/cranspasswords.git 
- * Copier clientconfig.example.py en clientconfig.py et adapter
-   à vos besoins
  * Installer le package python-gnupg
  * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
- * ???
+ * Lancez make install
+ * Assurez-vous d'avoir ~/bin dans votre $PATH
+ * Exécutez cranspasswords test pour voir si vous arrivez à récupérer le mot de passe de test
 
 == Complétion ==
  * Pour avoir la bash-complétion, dans votre .bashrc :

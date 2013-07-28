@@ -12,7 +12,7 @@ cmd_name = 'cranspasswords'
 ssh_path = '/usr/bin/ssh'
 
 #: Path du script ``cmd_name``-server sur le serveur
-server_path = '/root/%s/server' % (cmd_name,)
+server_path = '/usr/local/bin/%s-server' % (cmd_name,)
 
 #: Username utilisé pour se loguer sur le serveur.
 #: Par défaut, prend la valeur de l'username sur le client,

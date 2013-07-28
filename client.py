@@ -25,6 +25,7 @@ except ImportError:
     if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
         sys.stderr.write(u"Package python-gnupg introuvable, vous ne pourrez pas vérifiez les clés.\n".encode("utf-8"))
 try:
+    sys.path.append("~/.config/%s/" % (config.cmd_name,))
     import clientconfig as config
 except ImportError:
     if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
