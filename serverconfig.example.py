@@ -51,7 +51,7 @@ KEYS = {
     'lasseri': ('lasseri@crans.org', '31EF775095485A1CA4CC7CAAA2A902AE80403321'),
     'moisy-mabille': ('moisy-mabille@crans.org', None),
     'guiraud': ('guiraud@crans.org', None),
-    'soret': ('soret@crans.org', None),
+    'soret': ('soret@crans.org', 'C244290074A0A4A8C05FCA1ACF25D25F17DA8589'),
     'serrano': ('serrano@crans.org', '64ABC0C087EDAA14B79F5F7DEDE22762F030FDC5'),
     'kherouf': ('kherouf@crans.org', None),
     'baste': ('baste@crans.org', None),
