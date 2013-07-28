@@ -28,3 +28,8 @@ La bash_complétion a changé pour ne plus hardcoder le nom cranspasswords
 Pour récupérer la bash_complétion comme avant :
  * sourcer bash_completion et non plus cranspasswords_bash_completion
  * exécuter quelque part "complete -F _cranspasswords_completion cranspasswords"
+
+=== 0.1.2 ===
+''Pour voir cette version, git show 0.1.2''
+
+Le fichier à exécuter n'est plus cranspasswords.py mais client.py
