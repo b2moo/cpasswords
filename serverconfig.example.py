@@ -50,7 +50,7 @@ KEYS = {
     'pommeret': ('pommeret@crans.org', '8D9C890BD2B783A052DBE71405504FF0CF875FE1'),
     'lasseri': ('lasseri@crans.org', '31EF775095485A1CA4CC7CAAA2A902AE80403321'),
     'moisy-mabille': ('moisy-mabille@crans.org', None),
-    'guiraud': ('guiraud@crans.org', None),
+    'guiraud': ('guiraud@crans.org', '8C8F34952DCBA75CD2963A4C33ECE62B57DA1CD4'),
     'soret': ('soret@crans.org', 'C244290074A0A4A8C05FCA1ACF25D25F17DA8589'),
     'serrano': ('serrano@crans.org', '64ABC0C087EDAA14B79F5F7DEDE22762F030FDC5'),
     'kherouf': ('kherouf@crans.org', None),
@@ -67,12 +67,12 @@ KEYS = {
 
 #: Les variables suivantes sont utilisées pour définir le dictionnaire des
 #: rôles.
-RTC=[
-    "iffrig"
+RTC = [
+    "samir"
     ]
 
 #: Liste des usernames des nounous
-NOUNOUS=RTC+[
+NOUNOUS = RTC + [
     "blockelet",
     "becue",
     "dstan",
@@ -85,14 +85,33 @@ NOUNOUS=RTC+[
     "parret-freaud",
     "cauderlier",
     "maioli",
-    "samir",
+    "iffrig",
     "boilard",
     "legallic",
+    "pommeret",
+    "serrano",
     ]
 
 # Autogen:
 #: Liste des usernames des apprentis
-APPRENTIS=['grande', 'bonaque', 'moisy-mabille', 'baste', 'duplouy', 'besson', 'pvincent', 'quelennec', 'pommeret', 'guiraud', 'serrano', 'kherouf', 'randazzo', 'tilquin', 'lasseri', 'epalle', 'soret', 'gstalter', 'kviard']
+APPRENTIS = [
+    'grande',
+    'bonaque',
+    'moisy-mabille',
+    'baste',
+    'duplouy',
+    'besson',
+    'pvincent',
+    'quelennec',
+    'guiraud',
+    'kherouf',
+    'randazzo',
+    'tilquin',
+    'lasseri',
+    'epalle',
+    'soret',
+    'gstalter',
+    'kviard']
 
 #: Liste des usernames des membres du CA
 CA = [
@@ -111,6 +130,7 @@ CA = [
 TRESORERIE = RTC + [
     "soret",
     "guiraud",
+    "randazzo",
     ]
 
 #: Les roles utilisés pour savoir qui a le droit le lire/écrire quoi
