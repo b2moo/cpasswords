@@ -13,7 +13,7 @@ import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from serverconfig import READONLY, CRANSP_MAIL, DEST_MAIL, KEYS, ROLES, STORE
+from serverconfig import READONLY, CRANSP_MAIL, DEST_MAIL, KEYS, ROLES, STORE, cmd_name
 
 MYUID = pwd.getpwuid(os.getuid())[0]
 if MYUID == 'root':
@@ -132,10 +132,10 @@ def notification(subject, corps, fname, old):
     tomail = DEST_MAIL
     msg = MIMEMultipart(_charset="utf-8")
     msg['Subject'] = subject
-    msg['X-Mailer'] = u"cranspasswords"
+    msg['X-Mailer'] = cmd_name.decode()
     msg['From'] = CRANSP_MAIL
     msg['To'] = DEST_MAIL
-    msg.preamble = u"cranspasswords report"
+    msg.preamble = u"%s report" % (cmd_name.decode(),)
     info = MIMEText(corps + 
         u"\nLa version précédente a été sauvegardée." +
         u"\n\n-- \nCranspasswords.py", _charset="utf-8")

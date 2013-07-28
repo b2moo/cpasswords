@@ -5,11 +5,14 @@
 
 import os
 
+#: Pour override le nom si vous voulez renommer la commande
+cmd_name = "cranspasswords"
+
 #: Path du binaire ssh sur la machine client
 ssh_path = '/usr/bin/ssh'
 
-#: Path du script cranspasswords-server sur le serveur
-server_path = '/root/cranspasswords/server'
+#: Path du script ``cmd_name``-server sur le serveur
+server_path = '/root/%s/server' % (cmd_name,)
 
 #: Username utilisé pour se loguer sur le serveur.
 #: Par défaut, prend la valeur de l'username sur le client,

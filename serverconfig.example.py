@@ -10,14 +10,17 @@ utilisé lors du fonctionnement en mode client.
 Dans le futur, pourra être remplacé par une connexion ldap.
 """
 
+#: Pour override le nom si vous voulez renommer la commande
+cmd_name = "cranspasswords"
+
 #: Répertoire de stockage des mots de passe
-STORE = '/root/cranspasswords/db/'
+STORE = '/root/%s/db/' % (cmd_name,)
 
 #: Ce serveur est-il read-only (on ne peut pas y modifier les mots de passe)
 READONLY = False
 
 #: Expéditeur du mail de notification
-CRANSP_MAIL = "cranspasswords <root@crans.org>"
+CRANSP_MAIL = "%s <root@crans.org>" % (cmd_name,)
 
 #: Destinataire du mail de notification
 DEST_MAIL = "root@crans.org"
