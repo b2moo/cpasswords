@@ -47,4 +47,4 @@ install-server:
 	install server.py /usr/local/bin/${cmd_name}-server
 	install -d /etc/${cmd_name}/
 	install serverconfig.example.py /etc/${cmd_name}/serverconfig.py
-	install -d /var/lib/${cmd_name}/db/
+	install -d -m 700 /var/lib/${cmd_name}/db/
