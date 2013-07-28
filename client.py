@@ -391,7 +391,7 @@ def edit_file(fname):
     if value == False:
         nfile = True
         print u"Fichier introuvable".encode("utf-8")
-        if not confirm("Créer fichier ?"):
+        if not confirm(u"Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
 aléatoire, pensez à rajouter une ligne "login: ${login}"
@@ -433,7 +433,7 @@ def confirm(text):
     """Demande confirmation, sauf si on est mode ``FORCED``"""
     if FORCED: return True
     while True:
-        out = raw_input((text + ' (O/N)').encode("utf-8")).lower()
+        out = raw_input((text + u' (O/N)').encode("utf-8")).lower()
         if out == 'o':
             return True
         elif out == 'n':
