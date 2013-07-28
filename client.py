@@ -190,7 +190,7 @@ def check_keys():
     if VERB:
         print("M : l'uid correspond au mail du fingerprint\nC : confiance OK (inclu la vérification de non expiration).\n")
     keys = all_keys()
-    gpg = gnupg.GPG(gnupghome='~/.gnupg')
+    gpg = gnupg.GPG()
     localkeys = gpg.list_keys()
     failed = False
     for (mail, fpr) in keys.values():
