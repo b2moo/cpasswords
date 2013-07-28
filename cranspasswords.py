@@ -19,11 +19,16 @@ import re
 import random
 import string
 import datetime
-#import gnupg #disponible seulement sous wheezy
+try:
+    import gnupg #disponible seulement sous wheezy
+except ImportError:
+    if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
+        sys.stderr.write(u"Package python-gnupg introuvable, vous ne pourrez pas vérifiez les clés.\n".encode("utf-8"))
 try:
     import clientconfig as config
 except ImportError:
-    print "Read the README"
+    if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
+        sys.stderr.write(u"Va lire le fichier README.\n".encode("utf-8"))
     sys.exit(1)
 
 #: pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
@@ -184,7 +189,8 @@ def check_keys():
     failed = False
     for (mail, fpr) in keys.values():
         if fpr:
-            if VERB:   print (u"Checking %s" % (mail)).encode("utf-8")
+            if VERB:
+                print (u"Checking %s" % (mail)).encode("utf-8")
             corresponds = [key for key in localkeys if key["fingerprint"] == fpr]
             # On vérifie qu'on possède la clé…
             if len(corresponds) == 1:
@@ -237,7 +243,8 @@ def encrypt(roles, contents):
     stdin.close()
     out = stdout.read().decode("utf-8")
     if out == '':
-        if VERB: print u"Échec de chiffrement".encode("utf-8")
+        if VERB:
+            print u"Échec de chiffrement".encode("utf-8")
         return None
     else:
         return out
@@ -442,6 +449,7 @@ def remove_file(fname):
 
 def my_check_keys():
     """Vérifie les clés et affiche un message en fonction du résultat"""
+    print u"Vérification que les clés sont valides (uid correspondant au login) et de confiance."
     print (check_keys() and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8")
 
 def my_update_keys():
@@ -496,6 +504,8 @@ if __name__ == "__main__":
         help="Utilisation d'un serveur alternatif (test, backup, etc)")
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
         help="Mode verbeux")
+    parser.add_argument('-q', '--quiet', action='store_true', default=False,
+        help="Mode silencieux. Cache les message d'erreurs (override --verbose).")
     parser.add_argument('-c', '--clipboard', action='store_true', default=None,
         help="Stocker le mot de passe dans le presse papier")
     parser.add_argument('--no-clip', '--noclip', '--noclipboard', action='store_false', default=None,
@@ -541,7 +551,8 @@ if __name__ == "__main__":
     
     parsed = parser.parse_args(sys.argv[1:])
     SERVER = config.servers[parsed.server]
-    VERB = parsed.verbose
+    QUIET = parsed.quiet
+    VERB = parsed.verbose and not QUIET
     if parsed.clipboard != None:
         CLIPBOARD = parsed.clipboard
     FORCED = parsed.force
@@ -551,8 +562,10 @@ if __name__ == "__main__":
         if parsed.action.func_code.co_argcount == 0:
             parsed.action()
         elif parsed.fname == None:
-            print u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8")
-            parser.print_help()
+            if not QUIET:
+                print u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8")
+                parser.print_help()
+            sys.exit(1)
         else:
             parsed.action(parsed.fname)
     

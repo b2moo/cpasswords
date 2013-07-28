@@ -23,7 +23,7 @@ _cranspasswords_completion(){
   cur="${COMP_WORDS[argc]}"
   cur_first_char=${cur:0:1}
   opts_short="-h -v -c -f -l"
-  opts="--help --server --verbose --clipboard --noclipboard --force --edit --view --remove --list --check-keys --update-keys --list-roles --recrypt-files --roles --list-servers"
+  opts="--help --server --verbose --quiet --clipboard --noclipboard --force --edit --view --remove --list --check-keys --update-keys --list-roles --recrypt-files --roles --list-servers"
   mkdir -p -m 700  "$role_dir"
   mkdir -p -m 700 "$pass_dir"
   
@@ -48,14 +48,14 @@ _cranspasswords_completion(){
   fi
   
   if [[ "$last" = "--server" ]]; then
-    server_list="`$cmd_name --list-servers | grep -- "*" | awk '{print $2}'`"
+    server_list="`$cmd_name --quiet --list-servers | grep -- "*" | awk '{print $2}'`"
     COMPREPLY=( $(compgen -W "$server_list" -- $cur ) )
     return 0
   fi
   
   if [[ "$last" = "--roles" ]]; then 
     if  [ ! -f "${role_dir}$server" ]; then
-      echo "`$cmd_name --server $server --list-roles | grep -- "*" | awk '{print $2}'`" > "${role_dir}$server"
+      echo "`$cmd_name --quiet --server $server --list-roles | grep -- "*" | awk '{print $2}'`" > "${role_dir}$server"
     fi
     role_list="`cat "${role_dir}$server"`"
     COMPREPLY=( $(compgen -W "$role_list" -- $cur ) )
@@ -64,7 +64,7 @@ _cranspasswords_completion(){
   
   if [[ "$last" = "--edit" ]]; then
     if  [ ! -f "${pass_dir}${server}-w" ]; then
-      echo "`$cmd_name --server $server -l | grep "+" | awk '{print $2}'`" > "${pass_dir}${server}-w"
+      echo "`$cmd_name --quiet --server $server -l | grep "+" | awk '{print $2}'`" > "${pass_dir}${server}-w"
     fi
     pass_list="`cat "${pass_dir}${server}-w"`"
     COMPREPLY=( $(compgen -W "$pass_list" -- $cur ) )
@@ -73,7 +73,7 @@ _cranspasswords_completion(){
   
   if true; then
     if  [ ! -f "${pass_dir}$server" ]; then
-      echo "`$cmd_name --server $server -l | grep "\( +\| -\)" | awk '{print $2}'`" > "${pass_dir}$server"
+      echo "`$cmd_name --quiet --server $server -l | grep "\( +\| -\)" | awk '{print $2}'`" > "${pass_dir}$server"
     fi
     pass_list="`cat "${pass_dir}$server"`"
     COMPREPLY=( $(compgen -W "$pass_list" -- $cur ) )
