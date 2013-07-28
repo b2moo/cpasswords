@@ -14,7 +14,7 @@ Dans le futur, pourra être remplacé par une connexion ldap.
 cmd_name = 'cranspasswords'
 
 #: Répertoire de stockage des mots de passe
-STORE = '/root/%s/db/' % (cmd_name,)
+STORE = '/var/lib/%s/db/' % (cmd_name,)
 
 #: Ce serveur est-il read-only (on ne peut pas y modifier les mots de passe)
 READONLY = False

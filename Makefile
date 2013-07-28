@@ -45,5 +45,6 @@ install-server:
 	@echo "# Autorisation locale d'éxécution de ${cmd_name}" > ${sudoer_file_path}
 	@echo " %${sudoer_group}   ALL=(root) NOPASSWD: /usr/local/bin/${cmd_name}-server" >> ${sudoer_file_path}
 	install server.py /usr/local/bin/${cmd_name}-server
-	install -d /etc/${cmd_name}
+	install -d /etc/${cmd_name}/
 	install serverconfig.example.py /etc/${cmd_name}/serverconfig.py
+	install -d /var/lib/${cmd_name}/db/
