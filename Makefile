@@ -3,7 +3,7 @@ cmd_original_name=cranspasswords
 
 # Nom de la commande, par défaut cranspasswords
 # Vous pouvez la modifier
-cmd_name=bdepasswords
+cmd_name=cranspasswords
 
 # Expression régulière et son remplacement, pour le renommage
 before=cmd_name = '${cmd_original_name}'
