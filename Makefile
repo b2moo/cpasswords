@@ -11,6 +11,12 @@ after=cmd_name = '${cmd_name}'
 before2=cmd_name=${cmd_original_name}
 after2=cmd_name=${cmd_name}
 
+# Path du sudoer-file utilisé pour autoriser l'accès au script serveur
+sudoer_file_path=/etc/sudoers.d/${cmd_name}
+# Groupe qui aura le droit de lire les fichiers de mot de passe
+# (indépendamment de pouvoir les déchiffrer)
+sudoer_group=respbats
+
 build:
 	@echo "Pour installer ${cmd_name} :"
 	@echo "Exécutez make install pour installer le client pour vous."
@@ -35,3 +41,9 @@ install:
 	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rerename; fi
 
 install-server:
+	@echo "Création du sudoer-file."
+	@echo "# Autorisation locale d'éxécution de ${cmd_name}" > ${sudoer_file_path}
+	@echo " %${sudoer_group}   ALL=(root) NOPASSWD: /usr/local/bin/${cmd_name}-server" >> ${sudoer_file_path}
+	install server.py /usr/local/bin/${cmd_name}-server
+	install -d /etc/${cmd_name}
+	install serverconfig.example.py /etc/${cmd_name}/serverconfig.py

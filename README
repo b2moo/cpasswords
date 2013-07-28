@@ -5,16 +5,28 @@ ordinateur) et le serveur.
 == Nom de la commande ==
 Si vous voulez appeler votre commande autrement que "cranspasswords",
 c'est possible. Il faut pour cela changer la variable cmd_name dans le Makefile
-avant de lancer make install.
+avant de lancer make install ou make install-server.
 
 == Installation et configuration du client ==
- * Copier le dépôt git sur votre machine :
+ * Copiez le dépôt git sur votre machine :
     $ git clone git://git.crans.org/git/cranspasswords.git 
- * Installer le package python-gnupg
+ * Installez le package python-gnupg
  * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
  * Lancez make install
  * Assurez-vous d'avoir ~/bin dans votre $PATH
  * Exécutez cranspasswords test pour voir si vous arrivez à récupérer le mot de passe de test
+
+== Installation et configuration du serveur ==
+ * Copiez le dépôt git sur le serveur :
+    $ git clone git://git.crans.org/git/cranspasswords.git
+ * Lancez sudo make install-server
+  * Il va installer un suoder-file, si vous voulez paramétrer
+    le groupe qui aura les accès en lecture aux fichiers de mot de passe,
+    changez la variable sudoer_group au début de Makefile.
+    La possibilité de lire les fichiers est indépendante de la capacité
+    à les déchiffrer.
+ * Éditez /etc/cranspasswords/serverconfig.py pour qu'il soit conforme
+   à vos désirs.
 
 == Complétion ==
  * Pour avoir la bash-complétion, dans votre .bashrc :

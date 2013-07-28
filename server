@@ -2,4 +2,4 @@
 # sudo-wrapper pour exécuter cranspasswords côté serveur
 
 cmd_name=cranspasswords
-sudo /root/${cmd_name}/server.py $*
+sudo /usr/local/bin/${cmd_name}/server.py $*

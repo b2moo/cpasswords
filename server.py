@@ -13,7 +13,11 @@ import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from serverconfig import READONLY, CRANSP_MAIL, DEST_MAIL, KEYS, ROLES, STORE, cmd_name
+# Même problème que pour le client, il faut bootstraper le nom de la commande
+# Pour accéder à la config
+cmd_name = os.path.split(sys.argv[0])[1].replace("-server", "")
+sys.path.append("/etc/%s/" % (cmd_name,))
+import serverconfig
 
 MYUID = pwd.getpwuid(os.getuid())[0]
 if MYUID == 'root':
@@ -26,13 +30,13 @@ def validate(roles, mode='r'):
     for role in roles:
         if mode == 'w':
             role += '-w'
-        if ROLES.has_key(role) and MYUID in ROLES[role]:
+        if serverconfig.ROLES.has_key(role) and MYUID in serverconfig.ROLES[role]:
             return True
     return False
 
 def getpath(filename, backup=False):
     """Récupère le chemin du fichier ``filename``"""
-    return os.path.join(STORE, '%s.%s' % (filename, 'bak' if backup else 'json'))
+    return os.path.join(serverconfig.STORE, '%s.%s' % (filename, 'bak' if backup else 'json'))
 
 def writefile(filename, contents):
     """Écrit le fichier avec les bons droits UNIX"""
@@ -43,15 +47,15 @@ def writefile(filename, contents):
 
 def listroles():
     """Liste des roles existant et de leurs membres"""
-    return ROLES
+    return serverconfig.ROLES
 
 def listkeys():
     """Liste les usernames et les (mail, fingerprint) correspondants"""
-    return KEYS
+    return serverconfig.KEYS
 
 def listfiles():
     """Liste les fichiers dans l'espace de stockage, et les roles qui peuvent y accéder"""
-    os.chdir(STORE)
+    os.chdir(serverconfig.STORE)
     
     filenames = glob.glob('*.json')
     files = {}
@@ -128,14 +132,14 @@ def backup(corps, fname, old):
 def notification(subject, corps, fname, old):
     """Envoie par mail une notification de changement de fichier"""
     conn = smtplib.SMTP('localhost')
-    frommail = CRANSP_MAIL
-    tomail = DEST_MAIL
+    frommail = serverconfig.CRANSP_MAIL
+    tomail = serverconfig.DEST_MAIL
     msg = MIMEMultipart(_charset="utf-8")
     msg['Subject'] = subject
-    msg['X-Mailer'] = cmd_name.decode()
-    msg['From'] = CRANSP_MAIL
-    msg['To'] = DEST_MAIL
-    msg.preamble = u"%s report" % (cmd_name.decode(),)
+    msg['X-Mailer'] = serverconfig.cmd_name.decode()
+    msg['From'] = serverconfig.CRANSP_MAIL
+    msg['To'] = serverconfig.DEST_MAIL
+    msg.preamble = u"%s report" % (serverconfig.cmd_name.decode(),)
     info = MIMEText(corps + 
         u"\nLa version précédente a été sauvegardée." +
         u"\n\n-- \nCranspasswords.py", _charset="utf-8")
@@ -150,7 +154,7 @@ if __name__ == "__main__":
     if len(argv) not in [1, 2]:
         sys.exit(1)
     command = argv[0]
-    if READONLY and command in WRITE_COMMANDS:
+    if serverconfig.READONLY and command in WRITE_COMMANDS:
         raise IOError("Ce serveur est read-only.")
     filename = None
     try:
