@@ -8,6 +8,8 @@ Authors : Daniel Stan <daniel.stan@crans.org>
           Vincent Le Gallic <legallic@crans.org>
 """
 
+from __future__ import print_function
+
 import sys
 import subprocess
 import json
@@ -192,7 +194,7 @@ def check_keys():
     for (mail, fpr) in keys.values():
         if fpr:
             if VERB:
-                print (u"Checking %s" % (mail)).encode("utf-8")
+                print((u"Checking %s" % (mail)).encode("utf-8"))
             corresponds = [key for key in localkeys if key["fingerprint"] == fpr]
             # On vérifie qu'on possède la clé…
             if len(corresponds) == 1:
@@ -202,13 +204,13 @@ def check_keys():
                     meaning, trustvalue = GPG_TRUSTLEVELS[correspond["trust"]]
                     # … et qu'on lui fait confiance
                     if not trustvalue:
-                        print (u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (meaning,)).encode("utf-8")
+                        print((u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (meaning,)).encode("utf-8"))
                         failed = True
                 else:
-                    print (u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8")
+                    print((u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8"))
                     failed = True
             else:
-                print (u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8")
+                print((u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8"))
                 failed = True
     return not failed
 
@@ -245,8 +247,8 @@ def encrypt(roles, contents):
     stdin.close()
     out = stdout.read().decode("utf-8")
     if out == '':
-        if VERB:
-            print u"Échec de chiffrement".encode("utf-8")
+        if not QUIET:
+            print(u"Échec de chiffrement".encode("utf-8"))
         return None
     else:
         return out
@@ -265,7 +267,7 @@ def put_password(name, roles, contents):
     if NROLES != None:
         roles = NROLES
         if VERB:
-            print u"Pas de nouveaux rôles".encode("utf-8")
+            print(u"Pas de nouveaux rôles".encode("utf-8"))
     if enc_pwd <> None:
         return put_file(name, roles, enc_pwd)
     else:
@@ -304,7 +306,7 @@ def editor(texte, annotations=u""):
 
 def show_files():
     """Affiche la liste des fichiers disponibles sur le serveur distant"""
-    print u"Liste des fichiers disponibles :".encode("utf-8")
+    print(u"Liste des fichiers disponibles :".encode("utf-8"))
     my_roles = get_my_roles()
     files = all_files()
     keys = files.keys()
@@ -312,21 +314,21 @@ def show_files():
     for fname in keys:
         froles = files[fname]
         access = set(my_roles).intersection(froles) != set([])
-        print (u" %s %s (%s)" % ((access and '+' or '-'), fname, ", ".join(froles))).encode("utf-8")
-    print (u"""--Mes roles: %s""" % (", ".join(my_roles),)).encode("utf-8")
+        print((u" %s %s (%s)" % ((access and '+' or '-'), fname, ", ".join(froles))).encode("utf-8"))
+    print((u"""--Mes roles: %s""" % (", ".join(my_roles),)).encode("utf-8"))
     
 def show_roles():
     """Affiche la liste des roles existants"""
-    print u"Liste des roles disponibles".encode("utf-8")
+    print(u"Liste des roles disponibles".encode("utf-8"))
     for role in all_roles().keys():
         if not role.endswith('-w'):
-            print (u" * " + role ).encode("utf-8")
+            print((u" * " + role ).encode("utf-8"))
 
 def show_servers():
     """Affiche la liste des serveurs disponibles"""
-    print u"Liste des serveurs disponibles".encode("utf-8")
+    print(u"Liste des serveurs disponibles".encode("utf-8"))
     for server in config.servers.keys():
-        print (u" * " + server).encode("utf-8")
+        print((u" * " + server).encode("utf-8"))
 
 old_clipboard = None
 def saveclipboard(restore=False):
@@ -359,7 +361,7 @@ def show_file(fname):
     """Affiche le contenu d'un fichier"""
     value = get_file(fname)
     if value == False:
-        print u"Fichier introuvable".encode("utf-8")
+        print(u"Fichier introuvable".encode("utf-8"))
         return
     (sin, sout) = gpg('decrypt')
     sin.write(value['contents'].encode("utf-8"))
@@ -390,7 +392,7 @@ def edit_file(fname):
     annotations = u""
     if value == False:
         nfile = True
-        print u"Fichier introuvable".encode("utf-8")
+        print(u"Fichier introuvable".encode("utf-8"))
         if not confirm(u"Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
@@ -402,7 +404,7 @@ Enregistrez le fichier vide pour annuler.\n"""
         # créateur
         roles = [ r[:-2] for r in roles if r.endswith('-w') ]
         if roles == []:
-            print u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8")
+            print(u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8"))
             return
         value = {'roles' : roles}
     else:
@@ -421,13 +423,13 @@ C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
     ntexte = editor(texte, annotations)
 
     if ntexte == None and not nfile and NROLES == None:
-        print u"Pas de modifications effectuées".encode("utf-8")
+        print(u"Pas de modifications effectuées".encode("utf-8"))
     else:
         ntexte = texte if ntexte == None else ntexte
         if put_password(fname, value['roles'], ntexte):
-            print u"Modifications enregistrées".encode("utf-8")
+            print(u"Modifications enregistrées".encode("utf-8"))
         else:
-            print u"Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)".encode("utf-8")
+            print(u"Erreur lors de l'enregistrement (avez-vous les droits suffisants ?)".encode("utf-8"))
 
 def confirm(text):
     """Demande confirmation, sauf si on est mode ``FORCED``"""
@@ -444,19 +446,19 @@ def remove_file(fname):
     if not confirm((u'Êtes-vous sûr de vouloir supprimer %s ?' % fname).encode("utf-8")):
         return
     if rm_file(fname):
-        print u"Suppression effectuée".encode("utf-8")
+        print(u"Suppression effectuée".encode("utf-8"))
     else:
-        print u"Erreur de suppression (avez-vous les droits ?)".encode("utf-8")
+        print(u"Erreur de suppression (avez-vous les droits ?)".encode("utf-8"))
 
 
 def my_check_keys():
     """Vérifie les clés et affiche un message en fonction du résultat"""
-    print u"Vérification que les clés sont valides (uid correspondant au login) et de confiance."
-    print (check_keys() and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8")
+    print(u"Vérification que les clés sont valides (uid correspondant au login) et de confiance.")
+    print((check_keys() and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8"))
 
 def my_update_keys():
     """Met à jour les clés existantes et affiche le résultat"""
-    print update_keys().encode("utf-8")
+    print(update_keys().encode("utf-8"))
 
 def recrypt_files():
     """Rechiffre les fichiers"""
@@ -471,7 +473,7 @@ def recrypt_files():
     for (fname, froles) in all_files().iteritems():
         if set(roles).intersection(froles) == set([]):
             continue
-        print (u"Rechiffrement de %s" % fname).encode("utf-8")
+        print((u"Rechiffrement de %s" % fname).encode("utf-8"))
         put_password(fname, froles, get_password(fname))
 
 def parse_roles(strroles):
@@ -484,10 +486,10 @@ def parse_roles(strroles):
     writable = False
     for role in strroles.split(','):
         if role not in roles.keys():
-            print (u"Le rôle %s n'existe pas !" % role).encode("utf-8")
+            print((u"Le rôle %s n'existe pas !" % role).encode("utf-8"))
             return False
         if role.endswith('-w'):
-            print (u"Le rôle %s ne devrait pas être utilisé ! (utilisez %s)"
+            print((u"Le rôle %s ne devrait pas être utilisé ! (utilisez %s)")
                    % (role, role[:-2])).encode("utf-8")
             return False
         writable = writable or role in my_roles_w
@@ -565,7 +567,7 @@ if __name__ == "__main__":
             parsed.action()
         elif parsed.fname == None:
             if not QUIET:
-                print u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8")
+                print(u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8"))
                 parser.print_help()
             sys.exit(1)
         else:

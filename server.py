@@ -3,6 +3,8 @@
 
 """Serveur pour cranspasswords"""
 
+from __future__ import print_function
+
 import glob
 import os
 import pwd
@@ -163,19 +165,19 @@ if __name__ == "__main__":
         pass
     
     if command == "listroles":
-        print json.dumps(listroles())
+        print(json.dumps(listroles()))
     elif command == "listkeys":
-        print json.dumps(listkeys())
+        print(json.dumps(listkeys()))
     elif command == "listfiles":
-        print json.dumps(listfiles())
+        print(json.dumps(listfiles()))
     else:
         if not filename:
             sys.exit(1)
         if command == "getfile":
-            print json.dumps(getfile(filename))
+            print(json.dumps(getfile(filename)))
         elif command == "putfile":
-            print json.dumps(putfile(filename))
+            print(json.dumps(putfile(filename)))
         elif command == "rmfile":
-            print json.dumps(rmfile(filename))
+            print(json.dumps(rmfile(filename)))
         else:
             sys.exit(1)
