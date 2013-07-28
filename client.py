@@ -25,7 +25,9 @@ except ImportError:
     if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
         sys.stderr.write(u"Package python-gnupg introuvable, vous ne pourrez pas vérifiez les clés.\n".encode("utf-8"))
 try:
-    sys.path.append("~/.config/%s/" % (config.cmd_name,))
+    # Oui, le nom de la commande est dans la config, mais on n'a pas encore accès à la config
+    bootstrap_cmd_name = os.path.split(sys.argv[0])[1]
+    sys.path.append(os.path.expanduser("~/.config/%s/" % (bootstrap_cmd_name,)))
     import clientconfig as config
 except ImportError:
     if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
@@ -80,7 +82,6 @@ def gpg(command, args = None):
     else:
         stderr = subprocess.PIPE
         full_command.extend(['--debug-level=1'])
-    #print full_command
     proc = subprocess.Popen(full_command,
                             stdin = subprocess.PIPE,
                             stdout = subprocess.PIPE,
