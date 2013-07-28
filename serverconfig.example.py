@@ -2,10 +2,12 @@
 # -*- encoding: utf-8 -*-
 
 """ Configuration Serveur de cranspasswords.
+
 Sont définis ici les utilisateurs et les rôles associés.
 Ce fichier est donné à titre d'exemple, mais n'est PAS
-utilisé lorsque fonctionnement en mode client.
-Dans le futur, sera remplacé par une connexion ldap.
+utilisé lors du fonctionnement en mode client.
+
+Dans le futur, pourra être remplacé par une connexion ldap.
 """
 
 #: Répertoire de stockage des mots de passe
