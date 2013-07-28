@@ -187,6 +187,8 @@ def update_keys():
 
 def check_keys():
     """Vérifie les clés existantes"""
+    if VERB:
+        print("M : l'uid correspond au mail du fingerprint\nC : confiance OK (inclu la vérification de non expiration).\n")
     keys = all_keys()
     gpg = gnupg.GPG(gnupghome='~/.gnupg')
     localkeys = gpg.list_keys()
@@ -194,24 +196,30 @@ def check_keys():
     for (mail, fpr) in keys.values():
         if fpr:
             if VERB:
-                print((u"Checking %s" % (mail)).encode("utf-8"))
+                print((u"Checking %s… " % (mail)).encode("utf-8"), end="")
             corresponds = [key for key in localkeys if key["fingerprint"] == fpr]
             # On vérifie qu'on possède la clé…
             if len(corresponds) == 1:
                 correspond = corresponds[0]
                 # …qu'elle correspond au mail…
                 if mail.lower() in sum([re.findall("<(.*)>", uid.lower()) for uid in correspond["uids"]], []):
+                    if VERB:
+                        print("M ", end="")
                     meaning, trustvalue = GPG_TRUSTLEVELS[correspond["trust"]]
                     # … et qu'on lui fait confiance
                     if not trustvalue:
-                        print((u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (meaning,)).encode("utf-8"))
+                        print((u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (fpr, mail, meaning,)).encode("utf-8"))
                         failed = True
+                    elif VERB:
+                        print("C ", end="")
                 else:
                     print((u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8"))
                     failed = True
             else:
                 print((u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8"))
                 failed = True
+            if VERB:
+                print("")
     return not failed
 
 def get_recipients_of_roles(roles):
