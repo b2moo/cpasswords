@@ -6,7 +6,7 @@
 import os
 
 #: Pour override le nom si vous voulez renommer la commande
-cmd_name = "cranspasswords"
+cmd_name = 'cranspasswords'
 
 #: Path du binaire ssh sur la machine client
 ssh_path = '/usr/bin/ssh'

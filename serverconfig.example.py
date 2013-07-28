@@ -11,7 +11,7 @@ Dans le futur, pourra être remplacé par une connexion ldap.
 """
 
 #: Pour override le nom si vous voulez renommer la commande
-cmd_name = "cranspasswords"
+cmd_name = 'cranspasswords'
 
 #: Répertoire de stockage des mots de passe
 STORE = '/root/%s/db/' % (cmd_name,)
