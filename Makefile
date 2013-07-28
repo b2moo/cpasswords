@@ -31,7 +31,7 @@ install:
 	install -d ~/bin
 	install client.py ~/bin/${cmd_name}
 	install -d ~/.config/${cmd_name}
-	install clientconfig.py ~/.config/${cmd_name}
+	install clientconfig.example.py ~/.config/${cmd_name}
 	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rerename; fi
 
 install-server:
