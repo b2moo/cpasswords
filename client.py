@@ -52,7 +52,7 @@ NEWROLES = None
 SERVER = None
 
 ## GPG Definitions
-#: Path to gpg binary
+#: Path du binaire gpg
 GPG = '/usr/bin/gpg'
 
 #: Paramètres à fournir à gpg en fonction de l'action désirée
@@ -80,12 +80,12 @@ GPG_TRUSTLEVELS = {
 
 def gpg(command, args=None, verbose=False):
     """Lance gpg pour la commande donnée avec les arguments
-       donnés. Renvoie son entrée standard et sa sortie standard."""
+    donnés. Renvoie son entrée standard et sa sortie standard."""
     full_command = [GPG]
     full_command.extend(GPG_ARGS[command])
     if args:
         full_command.extend(args)
-    if verbose:
+    if verbose or VERB:
         stderr = sys.stderr
     else:
         stderr = subprocess.PIPE
@@ -95,7 +95,7 @@ def gpg(command, args=None, verbose=False):
                             stdout = subprocess.PIPE,
                             stderr = stderr,
                             close_fds = True)
-    if not verbose:
+    if not (verbose or VERB):
         proc.stderr.close()
     return proc.stdin, proc.stdout
 
@@ -315,41 +315,72 @@ def update_keys():
     _, stdout = gpg("receive-keys", [key for _, key in keys.values() if key])
     return stdout.read().decode("utf-8")
 
-def check_keys():
-    """Vérifie les clés existantes"""
-    if VERB:
-        print("M : l'uid correspond au mail du fingerprint\nC : confiance OK (inclu la vérification de non expiration).\n")
+def check_keys(recipients=None, interactive=False, drop_invalid=False):
+    """Vérifie les clés, c'est-à-dire, si le mail est présent dans les identités du fingerprint,
+       et que la clé est de confiance (et non expirée/révoquée).
+       
+        * Si ``recipients`` est fourni, vérifie seulement ces recipients.
+          Renvoie la liste de ceux qu'on n'a pas droppés.
+         * Si ``interactive=True``, demandera confirmation pour dropper un recipient dont la clé est invalide.
+         * Sinon, et si ``drop_invalid=True``, droppe les recipients automatiquement.
+        * Si rien n'est fourni, vérifie toutes les clés et renvoie juste un booléen disant si tout va bien.
+       """
+    if QUIET:
+        interactive = False
+    trusted_recipients = []
     keys = all_keys()
+    if recipients is None:
+        SPEAK = VERB
+    else:
+        SPEAK = False
+        keys = {u : val for (u, val) in keys.iteritems() if u in recipients}
+    if SPEAK:
+        print("M : le mail correspond à un uid du fingerprint\nC : confiance OK (inclut la vérification de non expiration).\n")
     _, gpgout = gpg('list-keys')
     localring = parse_keys(gpgout)
-    failed = False
-    for (mail, fpr) in keys.values():
-        if fpr:
-            if VERB:
+    for (recipient, (mail, fpr)) in keys.iteritems():
+        failed = u""
+        if not fpr is None:
+            if SPEAK:
                 print((u"Checking %s… " % (mail)).encode("utf-8"), end="")
             key = localring.get(fpr, None)
             # On vérifie qu'on possède la clé…
             if not key is None:
                 # …qu'elle correspond au mail…
                 if any([u"<%s>" % (mail,) in u["uid"] for u in key["uids"]]):
-                    if VERB:
+                    if SPEAK:
                         print("M ", end="")
                     meaning, trustvalue = GPG_TRUSTLEVELS[key["trustletter"]]
                     # … et qu'on lui fait confiance
                     if not trustvalue:
-                        print((u"--> Fail on %s:%s\nLa confiance en la clé est : %s" % (fpr, mail, meaning,)).encode("utf-8"))
-                        failed = True
-                    elif VERB:
+                        failed = u"La confiance en la clé est : %s" % (meaning,)
+                    elif SPEAK:
                         print("C ", end="")
                 else:
-                    print((u"--> Fail on %s:%s\n!! Le fingerprint et le mail ne correspondent pas !" % (fpr, mail)).encode("utf-8"))
-                    failed = True
+                    failed = u"!! Le fingerprint et le mail ne correspondent pas !"
             else:
-                print((u"--> Fail on %s:%s\nPas (ou trop) de clé avec ce fingerprint." % (fpr, mail)).encode("utf-8"))
-                failed = True
-            if VERB:
+                failed = u"Pas (ou trop) de clé avec ce fingerprint."
+            if SPEAK:
                 print("")
-    return not failed
+            if failed:
+                if not QUIET:
+                    print((u"--> Fail on %s:%s\n--> %s" % (mail, fpr, failed)).encode("utf-8"))
+                if not recipients is None:
+                    # On cherche à savoir si on droppe ce recipient
+                    drop = True # par défaut, on le drope
+                    if interactive:
+                        if not confirm(u"Abandonner le chiffrement pour cette clé ? (Si vous la conservez, il est posible que gpg crashe)"):
+                            drop = False # sauf si on a répondu non à "abandonner ?"
+                    elif not drop_invalid:
+                        drop = False # ou bien si drop_invalid ne nous autorise pas à le dropper silencieusement
+                    if not drop:
+                        trusted_recipients.append(recipient)
+            else:
+                trusted_recipients.append(recipient)
+    if recipients is None:
+        return set(keys.keys()).issubset(trusted_recipients)
+    else:
+        return trusted_recipients
 
 def get_recipients_of_roles(roles):
     """Renvoie les destinataires d'un rôle"""
@@ -366,11 +397,12 @@ def get_dest_of_roles(roles):
     return [u"%s : %s (%s)" % (rec, allkeys[rec][0], allkeys[rec][1])
                for rec in get_recipients_of_roles(roles) if allkeys[rec][1]]
 
-def encrypt(roles, contents):
-    """Chiffre ``contents`` pour les ``roles`` donnés"""
+def encrypt(roles, contents, interactive_trust=True, drop_invalid=False):
+    """Chiffre le contenu pour les roles donnés"""
+    
     allkeys = all_keys()
     recipients = get_recipients_of_roles(roles)
-    
+    recipients = check_keys(recipients, interactive=interactive_trust, drop_invalid=drop_invalid)
     fpr_recipients = []
     for recipient in recipients:
         fpr = allkeys[recipient][1]
@@ -394,10 +426,10 @@ def decrypt(contents):
     stdin.close()
     return stdout.read().decode("utf-8")
 
-def put_password(name, roles, contents):
+def put_password(name, roles, contents, interactive_trust=True, drop_invalid=False):
     """Dépose le mot de passe après l'avoir chiffré pour les
     destinataires donnés"""
-    success, enc_pwd_or_error = encrypt(roles, contents)
+    success, enc_pwd_or_error = encrypt(roles, contents, interactive_trust, drop_invalid)
     if NEWROLES != None:
         roles = NEWROLES
         if VERB:
@@ -521,7 +553,7 @@ def show_file(fname):
     os.waitpid(proc.pid, 0)
 
         
-def edit_file(fname):
+def edit_file(fname, interactive_trust=True, drop_invalid=False):
     """Modifie/Crée un fichier"""
     gotit, value = get_files([fname])[0]
     nfile = False
@@ -563,18 +595,18 @@ C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
     ntexte = editor(texte, annotations)
     
     if ((not nfile and ntexte in [u'', texte] and NEWROLES == None) or # Fichier existant vidé ou inchangé
-        (nfile and ntexte == u'')):                                  # Nouveau fichier créé vide
+        (nfile and ntexte == u'')):                                    # Nouveau fichier créé vide
         print(u"Pas de modification effectuée".encode("utf-8"))
     else:
         ntexte = texte if ntexte == None else ntexte
-        success, message = put_password(fname, value['roles'], ntexte)
+        success, message = put_password(fname, value['roles'], ntexte, interactive_trust, drop_invalid)
         print(message.encode("utf-8"))
 
 def confirm(text):
     """Demande confirmation, sauf si on est mode ``FORCED``"""
     if FORCED: return True
     while True:
-        out = raw_input((text + u' (O/N)').encode("utf-8")).lower()
+        out = raw_input((text + u' (o/n)').encode("utf-8")).lower()
         if out == 'o':
             return True
         elif out == 'n':
@@ -597,7 +629,7 @@ def my_update_keys():
     """Met à jour les clés existantes et affiche le résultat"""
     print(update_keys().encode("utf-8"))
 
-def recrypt_files():
+def recrypt_files(interactive_trust=False, drop_invalid=True):
     """Rechiffre les fichiers"""
     # Ici, la signification de NEWROLES est : on ne veut rechiffrer que les fichiers qui ont au moins un de ces roles
     rechiffre_roles = NEWROLES
@@ -708,7 +740,9 @@ if __name__ == "__main__":
         help="Lister les serveurs")
     action_grp.add_argument('--recrypt-files', action='store_const', dest='action',
         default=show_file, const=recrypt_files,
-        help="Rechiffrer les mots de passe. (Avec les mêmes rôles qu'avant, sert à rajouter un lecteur)")
+        help="""Rechiffrer les mots de passe.
+                (Avec les mêmes rôles que ceux qu'ils avant.
+                 Cela sert à mettre à jour les recipients pour qui un password est chiffré)""")
 
     parser.add_argument('--roles', nargs='?', default=None,
         help="""Liste de roles (séparés par des virgules).
