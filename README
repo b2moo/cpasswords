@@ -10,7 +10,6 @@ avant de lancer make install ou make install-server.
 == Installation et configuration du client ==
  * Copiez le dépôt git sur votre machine :
     $ git clone git://git.crans.org/git/cranspasswords.git 
- * Installez le package python-gnupg
  * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
  * Lancez make install
  * Assurez-vous d'avoir ~/bin dans votre $PATH
