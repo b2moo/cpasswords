@@ -21,7 +21,6 @@ import re
 import random
 import string
 import datetime
-import gnupg
 try:
     import gnupg #disponible seulement sous wheezy
 except ImportError:
