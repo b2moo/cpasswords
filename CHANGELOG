@@ -39,3 +39,8 @@ Le fichier à exécuter n'est plus cranspasswords.py mais client.py
 
 Les fichiers de mdp ne sont plus stockés dans /root/cranspasswords/db/
 mais /var/lib/cranspasswords/db/.
+
+=== 0.1.4 ===
+''Pour voir cette version, git show 0.1.4''
+
+Les fonctions serveurs getfile et putfile au singulier ne sont plus garanties de fonctionner.
