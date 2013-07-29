@@ -34,17 +34,17 @@ rerename:
 
 install:
 	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rename; fi
-	install -d ~/bin
-	install client.py ~/bin/${cmd_name}
-	install -d ~/.config/${cmd_name}
-	install clientconfig.example.py ~/.config/${cmd_name}
+	install -d -m 0755 ~/bin
+	install -m 0755 client.py ~/bin/${cmd_name}
+	install -d -m 0755 ~/.config/${cmd_name}
+	install -m 0644 clientconfig.example.py ~/.config/${cmd_name}
 	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rerename; fi
 
 install-server:
 	@echo "Création du sudoer-file."
 	@echo "# Autorisation locale d'éxécution de ${cmd_name}" > ${sudoer_file_path}
 	@echo " %${sudoer_group}   ALL=(root) NOPASSWD: /usr/local/bin/${cmd_name}-server" >> ${sudoer_file_path}
-	install server.py /usr/local/bin/${cmd_name}-server
-	install -d /etc/${cmd_name}/
-	install serverconfig.example.py /etc/${cmd_name}/serverconfig.py
+	install -g root -o root -m 0755 server.py /usr/local/bin/${cmd_name}-server
+	install -d -g root -o root -m 0755 /etc/${cmd_name}/
+	install -g root -o root -m 0644 serverconfig.example.py /etc/${cmd_name}/serverconfig.py
 	install -d -m 700 /var/lib/${cmd_name}/db/
