@@ -322,6 +322,28 @@ def update_keys(options):
     _, stdout = gpg(options, "receive-keys", [key for _, key in keys.values() if key])
     return stdout.read().decode("utf-8")
 
+def _check_encryptable(key):
+    """Vérifie qu'on peut chiffrer un message pour ``key``.
+       C'est-à-dire, que la clé est de confiance (et non expirée).
+       Puis qu'on peut chiffrer avec, ou qu'au moins une de ses subkeys est de chiffrement (capability e)
+       et est de confiance et n'est pas expirée"""
+    # Il faut avoir confiance la clé…
+    meaning, trustvalue = GPG_TRUSTLEVELS[key[u"trustletter"]]
+    if not trustvalue:
+        return u"La confiance en la clé est : %s" % (meaning,)
+    # …et pouvoir chiffrer avec…
+    if u"e" in key[u"capabilities"]:
+        # …soit directement…
+        return u""
+    # …soit avec une de ses subkeys
+    esubkeys = [sub for sub in key[u"subkeys"] if u"e" in sub[u"capabilities"]]
+    if len(esubkeys) == 0:
+        return u"La clé principale de permet pas de chiffrer et auncune sous-clé de chiffrement."
+    if any([GPG_TRUSTLEVELS[sub[u"trustletter"]][1] for sub in esubkeys]):
+        return u""
+    else:
+        return u"Aucune sous clé de chiffrement n'est de confiance et non expirée."
+
 def check_keys(options, recipients=None, quiet=False):
     """Vérifie les clés, c'est-à-dire, si le mail est présent dans les identités du fingerprint,
        et que la clé est de confiance (et non expirée/révoquée).
@@ -355,11 +377,9 @@ def check_keys(options, recipients=None, quiet=False):
                 if any([u"<%s>" % (mail,) in u["uid"] for u in key["uids"]]):
                     if speak:
                         print("M ", end="")
-                    meaning, trustvalue = GPG_TRUSTLEVELS[key["trustletter"]]
-                    # … et qu'on lui fait confiance
-                    if not trustvalue:
-                        failed = u"La confiance en la clé est : %s" % (meaning,)
-                    elif speak:
+                    # … et qu'on peut raisonnablement chiffrer pour lui
+                    failed = _check_encryptable(key)
+                    if not failed and speak:
                         print("C ", end="")
                 else:
                     failed = u"!! Le fingerprint et le mail ne correspondent pas !"
