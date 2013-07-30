@@ -35,21 +35,9 @@ except ImportError:
         sys.stderr.write(u"Va lire le fichier README.\n".encode("utf-8"))
     sys.exit(1)
 
-#: pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
-PASS = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$',
+#: Pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
+pass_regexp = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$',
         flags=re.IGNORECASE)
-
-## Conf qu'il faudrait éliminer en passant ``parsed`` aux fonctions
-#: Mode verbeux
-VERB = False
-#: Par défaut, place-t-on le mdp dans le presse-papier ?
-CLIPBOARD = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
-#: Mode «ne pas demander confirmation»
-FORCED = False
-#: Droits à définir sur le fichier en édition
-NEWROLES = None
-#: Serveur à interroger (peuplée à l'exécution)
-SERVER = None
 
 ## GPG Definitions
 #: Path du binaire gpg
@@ -78,14 +66,14 @@ GPG_TRUSTLEVELS = {
                     u"q" : (u"non définie", False),
                   }
 
-def gpg(command, args=None, verbose=False):
+def gpg(command, args=None):
     """Lance gpg pour la commande donnée avec les arguments
     donnés. Renvoie son entrée standard et sa sortie standard."""
     full_command = [GPG]
     full_command.extend(GPG_ARGS[command])
     if args:
         full_command.extend(args)
-    if verbose or VERB:
+    if options.verbose:
         stderr = sys.stderr
     else:
         stderr = subprocess.PIPE
@@ -95,7 +83,7 @@ def gpg(command, args=None, verbose=False):
                             stdout = subprocess.PIPE,
                             stderr = stderr,
                             close_fds = True)
-    if not (verbose or VERB):
+    if not options.verbose:
         proc.stderr.close()
     return proc.stdin, proc.stdout
 
@@ -230,19 +218,23 @@ class simple_memoize(object):
         self.f = f
         self.val = None
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
+        """Attention ! On peut fournir des paramètres, mais comme on mémorise pour la prochaine fois,
+           si on rappelle avec des paramètres différents, on aura quand même la même réponse.
+           Pour l'instant, on s'en fiche puisque les paramètres ne changent pas d'un appel au suivant,
+           mais il faudra s'en préoccuper si un jour on veut changer le comportement."""
         if self.val == None:
-            self.val = self.f()
+            self.val = self.f(*args, **kwargs)
         return self.val
 
 
 ######
 ## Remote commands
 
-def ssh(command, arg = None):
+def ssh(command, options, arg=None):
     """Lance ssh avec les arguments donnés. Renvoie son entrée
     standard et sa sortie standard."""
-    full_command = list(SERVER['server_cmd'])
+    full_command = list(options.serverdata['server_cmd'])
     full_command.append(command)
     if arg:
         full_command.append(arg)
@@ -253,11 +245,11 @@ def ssh(command, arg = None):
                             close_fds = True)
     return proc.stdin, proc.stdout
 
-def remote_command(command, arg = None, stdin_contents = None):
+def remote_command(options, command, arg=None, stdin_contents=None):
     """Exécute la commande distante, et retourne la sortie de cette
     commande"""
     
-    sshin, sshout = ssh(command, arg)
+    sshin, sshout = ssh(command, options, arg)
     if not stdin_contents is None:
         sshin.write(json.dumps(stdin_contents))
         sshin.close()
@@ -265,37 +257,39 @@ def remote_command(command, arg = None, stdin_contents = None):
     return json.loads(raw_out)
 
 @simple_memoize
-def all_keys():
+def all_keys(options):
     """Récupère les clés du serveur distant"""
-    return remote_command("listkeys")
+    return remote_command(options, "listkeys")
 
 @simple_memoize
-def all_roles():
+def all_roles(options):
     """Récupère les roles du serveur distant"""
-    return remote_command("listroles")
+    return remote_command(options, "listroles")
 
 @simple_memoize
-def all_files():
+def all_files(options):
     """Récupère les fichiers du serveur distant"""
-    return remote_command("listfiles")
+    return remote_command(options, "listfiles")
 
-def get_files(filenames):
+def get_files(options, filenames):
     """Récupère le contenu des fichiers distants"""
-    return remote_command("getfiles", stdin_contents=filenames)
+    return remote_command(options, "getfiles", stdin_contents=filenames)
 
-def put_files(files):
+def put_files(options, files):
     """Dépose les fichiers sur le serveur distant"""
-    return remote_command("putfiles", stdin_contents=files)
+    return remote_command(options, "putfiles", stdin_contents=files)
 
 def rm_file(filename):
     """Supprime le fichier sur le serveur distant"""
-    return remote_command("rmfile", filename)
+    return remote_command(options, "rmfile", filename)
 
 @simple_memoize
-def get_my_roles():
-    """Retourne la liste des rôles de l'utilisateur"""
-    allr = all_roles()
-    return filter(lambda role: SERVER['user'] in allr[role], allr.keys())
+def get_my_roles(options):
+    """Retourne la liste des rôles de l'utilisateur, et également la liste des rôles dont il possède le role-w."""
+    allroles = all_roles(options)
+    my_roles = [r for (r, users) in allroles.iteritems() if options.serverdata['user'] in users]
+    my_roles_w = [r[:-2] for r in my_roles if r.endswith("-w")]
+    return (my_roles, my_roles_w)
 
 def gen_password():
     """Génère un mot de passe aléatoire"""
@@ -307,74 +301,76 @@ def gen_password():
 ######
 ## Local commands
 
-def update_keys():
+def update_keys(options):
     """Met à jour les clés existantes"""
     
-    keys = all_keys()
+    keys = all_keys(options)
     
     _, stdout = gpg("receive-keys", [key for _, key in keys.values() if key])
     return stdout.read().decode("utf-8")
 
-def check_keys(recipients=None, interactive=False, drop_invalid=False):
+def check_keys(options, recipients=None, quiet=False):
     """Vérifie les clés, c'est-à-dire, si le mail est présent dans les identités du fingerprint,
        et que la clé est de confiance (et non expirée/révoquée).
        
         * Si ``recipients`` est fourni, vérifie seulement ces recipients.
           Renvoie la liste de ceux qu'on n'a pas droppés.
-         * Si ``interactive=True``, demandera confirmation pour dropper un recipient dont la clé est invalide.
-         * Sinon, et si ``drop_invalid=True``, droppe les recipients automatiquement.
+         * Si ``options.force=False``, demandera confirmation pour dropper un recipient dont la clé est invalide.
+         * Sinon, et si ``options.drop_invalid=True``, droppe les recipients automatiquement.
         * Si rien n'est fourni, vérifie toutes les clés et renvoie juste un booléen disant si tout va bien.
        """
-    if QUIET:
-        interactive = False
     trusted_recipients = []
-    keys = all_keys()
+    keys = all_keys(options)
     if recipients is None:
-        SPEAK = VERB
+        speak = options.verbose and not options.quiet
     else:
-        SPEAK = False
+        speak = False
         keys = {u : val for (u, val) in keys.iteritems() if u in recipients}
-    if SPEAK:
+    if speak:
         print("M : le mail correspond à un uid du fingerprint\nC : confiance OK (inclut la vérification de non expiration).\n")
     _, gpgout = gpg('list-keys')
     localring = parse_keys(gpgout)
     for (recipient, (mail, fpr)) in keys.iteritems():
         failed = u""
         if not fpr is None:
-            if SPEAK:
+            if speak:
                 print((u"Checking %s… " % (mail)).encode("utf-8"), end="")
             key = localring.get(fpr, None)
             # On vérifie qu'on possède la clé…
             if not key is None:
                 # …qu'elle correspond au mail…
                 if any([u"<%s>" % (mail,) in u["uid"] for u in key["uids"]]):
-                    if SPEAK:
+                    if speak:
                         print("M ", end="")
                     meaning, trustvalue = GPG_TRUSTLEVELS[key["trustletter"]]
                     # … et qu'on lui fait confiance
                     if not trustvalue:
                         failed = u"La confiance en la clé est : %s" % (meaning,)
-                    elif SPEAK:
+                    elif speak:
                         print("C ", end="")
                 else:
                     failed = u"!! Le fingerprint et le mail ne correspondent pas !"
             else:
                 failed = u"Pas (ou trop) de clé avec ce fingerprint."
-            if SPEAK:
+            if speak:
                 print("")
             if failed:
-                if not QUIET:
+                if not options.quiet:
                     print((u"--> Fail on %s:%s\n--> %s" % (mail, fpr, failed)).encode("utf-8"))
                 if not recipients is None:
                     # On cherche à savoir si on droppe ce recipient
-                    drop = True # par défaut, on le drope
-                    if interactive:
-                        if not confirm(u"Abandonner le chiffrement pour cette clé ? (Si vous la conservez, il est posible que gpg crashe)"):
-                            drop = False # sauf si on a répondu non à "abandonner ?"
-                    elif not drop_invalid:
+                    message = u"Abandonner le chiffrement pour cette clé ? (Si vous la conservez, il est posible que gpg crashe)"
+                    if not confirm(options, message):
+                        drop = False # si on a répondu non à "abandonner ?", on droppe pas
+                    elif not options.drop_invalid:
                         drop = False # ou bien si drop_invalid ne nous autorise pas à le dropper silencieusement
+                    else:
+                        drop = True # Là, on peut dropper
                     if not drop:
                         trusted_recipients.append(recipient)
+                    else:
+                        if not options.quiet:
+                            print(u"Droppe la clé %s:%s" % (fpr, recipient))
             else:
                 trusted_recipients.append(recipient)
     if recipients is None:
@@ -382,27 +378,27 @@ def check_keys(recipients=None, interactive=False, drop_invalid=False):
     else:
         return trusted_recipients
 
-def get_recipients_of_roles(roles):
+def get_recipients_of_roles(options, roles):
     """Renvoie les destinataires d'un rôle"""
     recipients = set()
-    allroles = all_roles()
+    allroles = all_roles(options)
     for role in roles:
         for recipient in allroles[role]:
             recipients.add(recipient)
     return recipients
 
-def get_dest_of_roles(roles):
+def get_dest_of_roles(options, roles):
     """Renvoie la liste des "username : mail (fingerprint)" """
-    allkeys = all_keys()
+    allkeys = all_keys(options)
     return [u"%s : %s (%s)" % (rec, allkeys[rec][0], allkeys[rec][1])
-               for rec in get_recipients_of_roles(roles) if allkeys[rec][1]]
+               for rec in get_recipients_of_roles(options, roles) if allkeys[rec][1]]
 
-def encrypt(roles, contents, interactive_trust=True, drop_invalid=False):
+def encrypt(options, roles, contents):
     """Chiffre le contenu pour les roles donnés"""
     
-    allkeys = all_keys()
-    recipients = get_recipients_of_roles(roles)
-    recipients = check_keys(recipients, interactive=interactive_trust, drop_invalid=drop_invalid)
+    allkeys = all_keys(options)
+    recipients = get_recipients_of_roles(options, roles)
+    recipients = check_keys(options, recipients=recipients, quiet=True)
     fpr_recipients = []
     for recipient in recipients:
         fpr = allkeys[recipient][1]
@@ -426,30 +422,26 @@ def decrypt(contents):
     stdin.close()
     return stdout.read().decode("utf-8")
 
-def put_password(name, roles, contents, interactive_trust=True, drop_invalid=False):
+def put_password(options, roles, contents):
     """Dépose le mot de passe après l'avoir chiffré pour les
-    destinataires donnés"""
-    success, enc_pwd_or_error = encrypt(roles, contents, interactive_trust, drop_invalid)
-    if NEWROLES != None:
-        roles = NEWROLES
-        if VERB:
-            print(u"Pas de nouveaux rôles".encode("utf-8"))
+    destinataires dans ``roles``."""
+    success, enc_pwd_or_error = encrypt(options, roles, contents)
     if success:
         enc_pwd = enc_pwd_or_error
-        return put_files([{'filename' : name, 'roles' : roles, 'contents' : enc_pwd}])[0]
+        return put_files(options, [{'filename' : options.fname, 'roles' : roles, 'contents' : enc_pwd}])[0]
     else:
         error = enc_pwd_or_error
         return [False, error]
 
-def get_password(name):
-    """Récupère le mot de passe donné par name"""
-    gotit, remotefile = get_files([name])[0]
-    if gotit:
-        remotefile = decrypt(remotefile['contents'])
-    return [gotit, remotefile]
-
 ######
 ## Interface
+
+NEED_FILENAME = []
+
+def need_filename(f):
+    """Décorateur qui ajoutera la fonction à la liste des fonctions qui attendent un filename."""
+    NEED_FILENAME.append(f)
+    return f
 
 def editor(texte, annotations=u""):
     """ Lance $EDITOR sur texte.
@@ -472,11 +464,11 @@ def editor(texte, annotations=u""):
     ntexte = u'\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
     return ntexte
 
-def show_files():
+def show_files(options):
     """Affiche la liste des fichiers disponibles sur le serveur distant"""
     print(u"Liste des fichiers disponibles :".encode("utf-8"))
-    my_roles = get_my_roles()
-    files = all_files()
+    my_roles, _ = get_my_roles(options)
+    files = all_files(options)
     keys = files.keys()
     keys.sort()
     for fname in keys:
@@ -485,23 +477,22 @@ def show_files():
         print((u" %s %s (%s)" % ((access and '+' or '-'), fname, ", ".join(froles))).encode("utf-8"))
     print((u"""--Mes roles: %s""" % (", ".join(my_roles),)).encode("utf-8"))
     
-def show_roles():
+def show_roles(options):
     """Affiche la liste des roles existants"""
     print(u"Liste des roles disponibles".encode("utf-8"))
-    for (role, usernames) in all_roles().iteritems():
+    for (role, usernames) in all_roles(options).iteritems():
         if not role.endswith('-w'):
             print((u" * %s : %s" % (role, ", ".join(usernames))).encode("utf-8"))
 
-def show_servers():
+def show_servers(options):
     """Affiche la liste des serveurs disponibles"""
     print(u"Liste des serveurs disponibles".encode("utf-8"))
     for server in config.servers.keys():
         print((u" * " + server).encode("utf-8"))
 
 old_clipboard = None
-def saveclipboard(restore=False):
+def saveclipboard(restore=False, old_clipboard=None):
     """Enregistre le contenu du presse-papier. Le rétablit si ``restore=True``"""
-    global old_clipboard
     if restore and old_clipboard == None:
         return
     act = '-in' if restore else '-out'
@@ -514,97 +505,121 @@ def saveclipboard(restore=False):
         proc.stdin.write(old_clipboard)
     proc.stdin.close()
     proc.stdout.close()
+    return old_clipboard
 
 def clipboard(texte):
     """Place ``texte`` dans le presse-papier en mémorisant l'ancien contenu."""
-    saveclipboard()
+    old_clipboard = saveclipboard()
     proc =subprocess.Popen(['xclip', '-selection', 'clipboard'],\
         stdin=subprocess.PIPE, stdout=sys.stdout, stderr=sys.stderr)
     proc.stdin.write(texte.encode("utf-8"))
     proc.stdin.close()
-    return u"[Le mot de passe a été mis dans le presse papier]"
+    return old_clipboard
 
-
-def show_file(fname):
+@need_filename
+def show_file(options):
     """Affiche le contenu d'un fichier"""
-    gotit, value = get_files([fname])[0]
+    fname = options.fname
+    gotit, value = get_files(options, [fname])[0]
     if not gotit:
-        print(value.encode("utf-8")) # value contient le message d'erreur
+        if not options.quiet:
+            print(value.encode("utf-8")) # value contient le message d'erreur
         return
+    passfile = value
     (sin, sout) = gpg('decrypt')
-    sin.write(value['contents'].encode("utf-8"))
+    sin.write(passfile['contents'].encode("utf-8"))
     sin.close()
     texte = sout.read().decode("utf-8")
     ntexte = u""
     hidden = False  # Est-ce que le mot de passe a été caché ?
     lines = texte.split('\n')
     for line in lines:
-        catchPass = PASS.match(line)
-        if catchPass != None and CLIPBOARD:
+        catchPass = pass_regexp.match(line)
+        if catchPass != None and options.clipboard:
             hidden = True
-            line = clipboard(catchPass.group(1))
+            # On met le mdp dans le clipboard en mémorisant sont ancien contenu
+            old_clipboard = clipboard(catchPass.group(1))
+            # Et donc on override l'affichage
+            line = u"[Le mot de passe a été mis dans le presse papier]"
         ntexte += line + '\n'
     showbin = "cat" if hidden else "less"
     proc = subprocess.Popen([showbin], stdin=subprocess.PIPE)
     out = proc.stdin
-    raw = u"Fichier %s:\n\n%s-----\nVisible par: %s\n" % (fname, ntexte, ','.join(value['roles']))
+    raw = u"Fichier %s:\n\n%s-----\nVisible par: %s\n" % (fname, ntexte, ','.join(passfile['roles']))
     out.write(raw.encode("utf-8"))
     out.close()
     os.waitpid(proc.pid, 0)
+    if options.clipboard:
+        saveclipboard(restore=True, old_clipboard=old_clipboard)
 
-        
-def edit_file(fname, interactive_trust=True, drop_invalid=False):
+@need_filename
+def edit_file(options):
     """Modifie/Crée un fichier"""
-    gotit, value = get_files([fname])[0]
+    fname = options.fname
+    gotit, value = get_files(options, [fname])[0]
     nfile = False
     annotations = u""
-    if not gotit and not "pas les droits" in value:
+    if not gotit and not u"pas les droits" in value:
         nfile = True
-        print(u"Fichier introuvable".encode("utf-8"))
-        if not confirm(u"Créer fichier ?"):
+        if not options.quiet:
+            print(u"Fichier introuvable".encode("utf-8"))
+        if not confirm(options, u"Créer fichier ?"):
             return
         annotations += u"""Ceci est un fichier initial contenant un mot de passe
 aléatoire, pensez à rajouter une ligne "login: ${login}"
 Enregistrez le fichier vide pour annuler.\n"""
         texte = u"pass: %s\n" % gen_password()
-        roles = get_my_roles()
-        # Par défaut les roles d'un fichier sont ceux en écriture de son
-        # créateur
-        roles = [ r[:-2] for r in roles if r.endswith('-w') ]
-        if roles == []:
-            print(u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8"))
+        if options.roles == []:
+            if not options.quiet:
+                print(u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8"))
             return
-        value = {'roles' : roles}
+        passfile = {'roles' : options.roles}
     elif not gotit:
-        print(value.encode("utf-8")) # value contient le message d'erreur
+        if not options.quiet:
+            print(value.encode("utf-8")) # value contient le message d'erreur
         return
     else:
+        passfile = value
         (sin, sout) = gpg('decrypt')
-        sin.write(value['contents'].encode("utf-8"))
+        sin.write(passfile['contents'].encode("utf-8"))
         sin.close()
         texte = sout.read().decode("utf-8")
+    # On peut vouloir chiffrer un fichier sans avoir la possibilité de le lire dans le futur
+    # Mais dans ce cas on préfère demander confirmation
+    my_roles, _ = get_my_roles(options)
+    if not options.force and set(options.roles).intersection(my_roles) == set():
+        message = u"""Vous vous apprêtez à perdre vos droits de lecture (ROLES ne contient rien parmi : %s) sur ce fichier, continuer ?"""
+        message = message % (", ".join(my_roles),)
+        if not confirm(options, message):
+            sys.exit(2)
     # On récupère les nouveaux roles si ils ont été précisés, sinon on garde les mêmes
-    value['roles'] = NEWROLES or value['roles']
+    passfile['roles'] = options.roles or passfile['roles']
     
     annotations += u"""Ce fichier sera chiffré pour les rôles suivants :\n%s\n
 C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
-           ', '.join(value['roles']),
-           '\n'.join(' %s' % rec for rec in get_dest_of_roles(value['roles']))
+           ', '.join(passfile['roles']),
+           '\n'.join(' %s' % rec for rec in get_dest_of_roles(options, passfile['roles']))
         )
-        
+    
     ntexte = editor(texte, annotations)
     
-    if ((not nfile and ntexte in [u'', texte] and NEWROLES == None) or # Fichier existant vidé ou inchangé
-        (nfile and ntexte == u'')):                                    # Nouveau fichier créé vide
-        print(u"Pas de modification effectuée".encode("utf-8"))
+    if ((not nfile and ntexte in [u'', texte]              # pas nouveau, vidé ou pas modifié
+         and set(options.roles) == set(passfile['roles'])) # et on n'a même pas touché à ses rôles,
+        or (nfile and ntexte == u'')):                     # ou alors on a créé un fichier vide.
+        message = u"Pas de modification à enregistrer.\n"
+        message += u"Si ce n'est pas un nouveau fichier, il a été vidé ou n'a pas été modifié (même pas ses rôles).\n"
+        message += u"Si c'est un nouveau fichier, vous avez tenté de le créer vide."
+        if not options.quiet:
+            print(message.encode("utf-8"))
     else:
         ntexte = texte if ntexte == None else ntexte
-        success, message = put_password(fname, value['roles'], ntexte, interactive_trust, drop_invalid)
+        success, message = put_password(options, passfile['roles'], ntexte)
         print(message.encode("utf-8"))
 
-def confirm(text):
-    """Demande confirmation, sauf si on est mode ``FORCED``"""
-    if FORCED: return True
+def confirm(options, text):
+    """Demande confirmation, sauf si on est mode ``--force``"""
+    if options.force:
+        return True
     while True:
         out = raw_input((text + u' (o/n)').encode("utf-8")).lower()
         if out == 'o':
@@ -612,102 +627,127 @@ def confirm(text):
         elif out == 'n':
             return False
 
-def remove_file(fname):
+@need_filename
+def remove_file(options):
     """Supprime un fichier"""
-    if not confirm(u'Êtes-vous sûr de vouloir supprimer %s ?' % fname):
+    fname = options.fname
+    if not confirm(options, u'Êtes-vous sûr de vouloir supprimer %s ?' % (fname,), options):
         return
     message = rm_file(fname)
     print(message.encode("utf-8"))
 
 
-def my_check_keys():
+def my_check_keys(options):
     """Vérifie les clés et affiche un message en fonction du résultat"""
     print(u"Vérification que les clés sont valides (uid correspondant au login) et de confiance.")
-    print((check_keys() and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8"))
+    print((check_keys(options) and u"Base de clés ok" or u"Erreurs dans la base").encode("utf-8"))
 
-def my_update_keys():
+def my_update_keys(options):
     """Met à jour les clés existantes et affiche le résultat"""
-    print(update_keys().encode("utf-8"))
+    print(update_keys(options).encode("utf-8"))
 
-def recrypt_files(interactive_trust=False, drop_invalid=True):
-    """Rechiffre les fichiers"""
-    # Ici, la signification de NEWROLES est : on ne veut rechiffrer que les fichiers qui ont au moins un de ces roles
-    rechiffre_roles = NEWROLES
-    my_roles = get_my_roles()
-    my_roles_w = [r for r in my_roles if r.endswith("-w")]
+def recrypt_files(options):
+    """Rechiffre les fichiers.
+       Ici, la signification de ``options.roles`` est : on ne veut rechiffrer que les fichiers qui ont au moins un de ces roles.
+       """
+    rechiffre_roles = options.roles
+    _, my_roles_w = get_my_roles(options)
     if rechiffre_roles == None:
         # Sans précisions, on prend tous les roles qu'on peut
-        rechiffre_roles = my_roles
-    # On ne conserve que les rôles en écriture
-    rechiffre_roles = [ r[:-2] for r in rechiffre_roles if r.endswith('-w')]
+        rechiffre_roles = my_roles_w
     
     # La liste des fichiers
-    allfiles = all_files()
-    # On ne demande que les fichiers dans lesquels on peut écrire
-    # et qui ont au moins un role dans ``roles``
+    allfiles = all_files(options)
+    # On ne demande que les fichiers qui ont au moins un role dans ``options.roles``
+    # et dans lesquels on peut écrire
     askfiles = [filename for (filename, fileroles) in allfiles.iteritems()
-                         if set(fileroles).intersection(roles) != set()
+                         if set(fileroles).intersection(options.roles) != set()
                          and set(fileroles).intersection(my_roles_w) != set()]
-    files = get_files(askfiles)
+    files = get_files(options, askfiles)
     # Au cas où on aurait échoué à récupérer ne serait-ce qu'un de ces fichiers,
     # on affiche le message d'erreur correspondant et on abandonne.
     for (success, message) in files:
         if not success:
-            print(message.encode("utf-8"))
+            if not options.quiet:
+                print(message.encode("utf-8"))
             return
+    # On informe l'utilisateur et on demande confirmation avant de rechiffrer
+    # Si il a précisé --force, on ne lui demandera rien.
+    filenames = ", ".join(askfiles)
+    message = u"Vous vous apprêtez à rechiffrer les fichiers suivants :\n%s" % filenames
+    if not confirm(options, message + u"\nConfirmer"):
+        sys.exit(2)
     # On rechiffre
     to_put = [{'filename' : f['filename'],
                'roles' : f['roles'],
-               'contents' : encrypt(f['roles'], decrypt(f['contents']))}
+               'contents' : encrypt(options, f['roles'], decrypt(f['contents']))}
               for f in files]
     if to_put:
-        print((u"Rechiffrement de %s" % (", ".join([f['filename'] for f in to_put]))).encode("utf-8"))
+        if not options.quiet:
+            print((u"Rechiffrement de %s" % (", ".join([f['filename'] for f in to_put]))).encode("utf-8"))
         results = put_files(to_put)
         # On affiche les messages de retour
-        for i in range(len(results)):
-            print(u"%s : %s" % (to_put[i]['filename'], results[i][1]))
+        if not options.quiet:
+            for i in range(len(results)):
+                print(u"%s : %s" % (to_put[i]['filename'], results[i][1]))
     else:
-        print(u"Aucun fichier n'a besoin d'être rechiffré".encode("utf-8"))
+        if not options.quiet:
+            print(u"Aucun fichier n'a besoin d'être rechiffré".encode("utf-8"))
 
-def parse_roles(strroles):
-    """Interprête une liste de rôles fournie par l'utilisateur.
-       Renvoie ``False`` si au moins un de ces rôles pose problème."""
-    if strroles == None: return None
-    roles = all_roles()
-    my_roles = filter(lambda r: SERVER['user'] in roles[r], roles.keys())
-    my_roles_w = [ r[:-2] for r in my_roles if r.endswith('-w') ]
-    ret = set()
-    writable = False
-    for role in strroles.split(','):
-        if role not in roles.keys():
-            print((u"Le rôle %s n'existe pas !" % role).encode("utf-8"))
-            return False
-        if role.endswith('-w'):
-            print((u"Le rôle %s ne devrait pas être utilisé ! (utilisez %s)")
-                   % (role, role[:-2])).encode("utf-8")
-            return False
-        writable = writable or role in my_roles_w
-        ret.add(role)
+def parse_roles(options):
+    """Interprête la liste de rôles fournie par l'utilisateur.
+       Si il n'en a pas fourni, on considère qu'il prend tous ceux pour lesquels il a le -w.
+       
+       Renvoie ``False`` si au moins un de ces rôles pose problème.
+       
+       poser problème, c'est :
+        * être un role-w (il faut utiliser le role sans le w)
+        * ne pas exister dans la config du serveur
     
-    if not FORCED and not writable:
-        if not confirm(u"""Vous vous apprêtez à perdre vos droits d'écritures\
-(ROLES ne contient pas %s) sur ce fichier, continuer ?""" %
-            ", ".join(my_roles_w)):
-            return False
+    """
+    strroles = options.roles
+    allroles = all_roles(options)
+    _, my_roles_w = get_my_roles(options)
+    if strroles == None:
+        # L'utilisateur n'a rien donné, on lui donne les rôles (non -w) dont il possède le -w
+        return my_roles_w
+    ret = set()
+    for role in strroles.split(','):
+        if role not in allroles.keys():
+            if not options.quiet:
+                print((u"Le rôle %s n'existe pas !" % role).encode("utf-8"))
+            sys.exit(1)
+        if role.endswith('-w'):
+            if not options.quiet:
+                print((u"Le rôle %s ne devrait pas être utilisé ! (utilisez %s)")
+                       % (role, role[:-2])).encode("utf-8")
+            sys.exit(1)
+        ret.add(role)
     return list(ret)
 
+def insult_on_nofilename(options, parser):
+    """Insulte (si non quiet) et quitte si aucun nom de fichier n'a été fourni en commandline."""
+    if options.fname == None:
+        if not options.quiet:
+            print(u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8"))
+            parser.print_help()
+        sys.exit(1)
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="trousseau crans")
+    parser = argparse.ArgumentParser(description="Gestion de mots de passe partagés grâce à GPG.")
     parser.add_argument('-s', '--server', default='default',
         help="Utilisation d'un serveur alternatif (test, backup, etc)")
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
         help="Mode verbeux")
+    parser.add_argument('--drop-invalid', action='store_true', default=False,
+        dest='drop_invalid',
+        help="Combiné avec --force, droppe les clés en lesquelles on n'a pas confiance sans demander confirmation.")
     parser.add_argument('-q', '--quiet', action='store_true', default=False,
-        help="Mode silencieux. Cache les message d'erreurs (override --verbose).")
+        help="Mode silencieux. Cache les message d'erreurs (override --verbose et --interactive).")
     parser.add_argument('-c', '--clipboard', action='store_true', default=None,
         help="Stocker le mot de passe dans le presse papier")
     parser.add_argument('--no-clip', '--noclip', '--noclipboard', action='store_false', default=None,
-        dest='clipboard',
+        dest='noclipboard',
         help="Ne PAS stocker le mot de passe dans le presse papier")
     parser.add_argument('-f', '--force', action='store_true', default=False,
         help="Ne pas demander confirmation")
@@ -743,7 +783,7 @@ if __name__ == "__main__":
         help="""Rechiffrer les mots de passe.
                 (Avec les mêmes rôles que ceux qu'ils avant.
                  Cela sert à mettre à jour les recipients pour qui un password est chiffré)""")
-
+    
     parser.add_argument('--roles', nargs='?', default=None,
         help="""Liste de roles (séparés par des virgules).
                 Avec --edit, le fichier sera chiffré pour exactement ces roles
@@ -753,25 +793,29 @@ if __name__ == "__main__":
     parser.add_argument('fname', nargs='?', default=None,
         help="Nom du fichier à afficher")
     
-    parsed = parser.parse_args(sys.argv[1:])
-    SERVER = config.servers[parsed.server]
-    QUIET = parsed.quiet
-    VERB = parsed.verbose and not QUIET
-    if parsed.clipboard != None:
-        CLIPBOARD = parsed.clipboard
-    FORCED = parsed.force
-    NEWROLES = parse_roles(parsed.roles)
+    # On parse les options fournies en commandline
+    options = parser.parse_args(sys.argv[1:])
     
-    if NEWROLES != False:
-        if parsed.action.func_code.co_argcount == 0:
-            parsed.action()
-        elif parsed.fname == None:
-            if not QUIET:
-                print(u"Vous devez fournir un nom de fichier avec cette commande".encode("utf-8"))
-                parser.print_help()
-            sys.exit(1)
-        else:
-            parsed.action(parsed.fname)
+    ## On calcule les options qui dépendent des autres.
+    ## C'est un peu un hack, peut-être que la méthode propre serait de surcharger argparse.ArgumentParser
+    ## et argparse.Namespace, mais j'ai pas réussi à comprendre commenr m'en sortir.
+    # On utilise le clipboard si on n'a pas demandé explicitement à ne pas le faire,
+    # qu'on n'est pas en session distante et qu'on a xclip
+    options.clipboard = not options.noclipboard and bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
+    # On récupère les données du serveur à partir du nom fourni
+    options.serverdata = config.servers[options.server]
+    # Attention à l'ordre pour interactive
+    #  --quiet override --verbose
+    if options.quiet:
+        options.verbose = False
+    # On parse les roles fournis, et il doivent exister, ne pas être -w…
+    # parse_roles s'occupe de ça
+    options.roles = parse_roles(options)
     
-    saveclipboard(restore=True)
-
+    # Si l'utilisateur a demandé une action qui nécessite un nom de fichier,
+    # on vérifie qu'il a bien fourni un nom de fichier.
+    if options.action in NEED_FILENAME:
+        insult_on_nofilename(options, parser)
+    
+    # On exécute l'action demandée
+    options.action(options)
