@@ -412,7 +412,7 @@ def check_keys(options, recipients=None, quiet=False):
         return trusted_recipients
 
 def get_recipients_of_roles(options, roles):
-    """Renvoie les destinataires d'un rôle"""
+    """Renvoie les destinataires d'une liste de rôles"""
     recipients = set()
     allroles = all_roles(options)
     for role in roles:
