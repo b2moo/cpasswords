@@ -516,7 +516,6 @@ def show_roles(options):
     """Affiche la liste des roles existants"""
     print(u"Liste des roles disponibles".encode("utf-8"))
     allroles =  all_roles(options)
-    allroles.pop("whoami")
     for (role, usernames) in allroles.iteritems():
         if not role.endswith('-w'):
             print((u" * %s : %s" % (role, ", ".join(usernames))).encode("utf-8"))
