@@ -373,12 +373,12 @@ def check_keys(options, recipients=None, quiet=False):
                 if not recipients is None:
                     # On cherche à savoir si on droppe ce recipient
                     message = u"Abandonner le chiffrement pour cette clé ? (Si vous la conservez, il est posible que gpg crashe)"
-                    if not confirm(options, message):
-                        drop = False # si on a répondu non à "abandonner ?", on droppe pas
-                    elif not options.drop_invalid:
-                        drop = False # ou bien si drop_invalid ne nous autorise pas à le dropper silencieusement
+                    if confirm(options, message):
+                        drop = True # si on a répondu oui à "abandonner ?", on droppe
+                    elif options.drop_invalid and options.force:
+                        drop = True # ou bien si --drop-invalid avec --force nous autorisent à dropper silencieusement
                     else:
-                        drop = True # Là, on peut dropper
+                        drop = False # Là, on droppe pas
                     if not drop:
                         trusted_recipients.append(recipient)
                     else:
