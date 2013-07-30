@@ -52,3 +52,8 @@ mais /var/lib/cranspasswords/db/.
 ''Pour voir cette version, git show 0.1.4''
 
 Les fonctions serveurs getfile et putfile au singulier ne sont plus garanties de fonctionner.
+
+=== 0.1.5 ===
+''Pour voir cette version, git show 0.1.5''
+
+Les nouveaux clients s'attendent à ce que le serveur renvoie le rôle spécial "whoami".
