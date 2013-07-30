@@ -23,6 +23,7 @@ import random
 import string
 import time
 import datetime
+import copy
 
 # Import de la config
 envvar = "CRANSPASSWORDS_CLIENT_CONFIG_DIR"
@@ -238,7 +239,7 @@ class simple_memoize(object):
            mais il faudra s'en préoccuper si un jour on veut changer le comportement."""
         if self.val == None:
             self.val = self.f(*args, **kwargs)
-        return self.val
+        return copy.deepcopy(self.val)
 
 
 ######
