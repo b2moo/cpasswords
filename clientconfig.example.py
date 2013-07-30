@@ -27,6 +27,10 @@ servers = {
     'default': {
         'server_cmd': [ssh_path, 'vert.adm.crans.org', distant_cmd],
     },
+    # Utile pour tester
+    'localhost': {
+        'server_cmd': [ssh_path, 'localhost', distant_cmd],
+    },
     'ovh': {
         'server_cmd': [ssh_path, 'ovh.crans.org', distant_cmd],
     }
