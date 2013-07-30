@@ -668,7 +668,7 @@ def confirm(options, text):
 def remove_file(options):
     """Supprime un fichier"""
     fname = options.fname
-    if not confirm(options, u'Êtes-vous sûr de vouloir supprimer %s ?' % (fname,), options):
+    if not confirm(options, u'Êtes-vous sûr de vouloir supprimer %s ?' % (fname,)):
         return
     message = rm_file(fname)
     print(message.encode("utf-8"))
