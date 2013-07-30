@@ -245,9 +245,15 @@ class simple_memoize(object):
 ######
 ## Remote commands
 
-def ssh(command, options, arg=None):
-    """Lance ssh avec les arguments donnés. Renvoie son entrée
-    standard et sa sortie standard."""
+def remote_proc(options, command, arg=None):
+    """
+    Fabrique un process distant pour communiquer avec le serveur.
+    Cela consiste à lancer une commande (indiquée dans la config)
+    qui va potentiellement lancer ssh.
+    ``command`` désigne l'action à envoyer au serveur
+    ``arg`` est une chaîne (str) accompagnant la commande en paramètre
+    ``options`` contient la liste usuelle d'options
+    """
     full_command = list(options.serverdata['server_cmd'])
     full_command.append(command)
     if arg:
@@ -257,18 +263,36 @@ def ssh(command, options, arg=None):
                             stdout = subprocess.PIPE,
                             stderr = sys.stderr,
                             close_fds = True)
-    return proc.stdin, proc.stdout
+    return proc
 
 def remote_command(options, command, arg=None, stdin_contents=None):
     """Exécute la commande distante, et retourne la sortie de cette
     commande"""
+    detail = options.verbose and not options.quiet
     
-    sshin, sshout = ssh(command, options, arg)
-    if not stdin_contents is None:
-        sshin.write(json.dumps(stdin_contents))
-        sshin.close()
-    raw_out = sshout.read()
-    return json.loads(raw_out)
+    proc = remote_proc(options, command, arg)
+    if stdin_contents is not None:
+        proc.stdin.write(json.dumps(stdin_contents))
+        proc.close()
+    ret = proc.wait()
+    raw_out = proc.stdout.read()
+    if ret != 0:
+        if not options.quiet:
+            print((u"Mauvais code retour côté serveur, voir erreur " +
+                   u"ci-dessus").encode('utf-8'),
+                  file=sys.stderr)
+            if options.verbose:
+                print("raw_output: %s" % raw_out)
+        sys.exit(ret)
+    try:
+        return json.loads(raw_out)
+    except ValueError:
+        if not options.quiet:
+            print(u"Impossible de parser le résultat".encode('utf-8'),
+                  file=sys.stderr)
+            if options.verbose:
+                print("raw_output: %s" % raw_out)
+            sys.exit(42)
 
 @simple_memoize
 def all_keys(options):
