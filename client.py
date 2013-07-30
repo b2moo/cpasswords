@@ -527,7 +527,6 @@ def show_servers(options):
     for server in config.servers.keys():
         print((u" * " + server).encode("utf-8"))
 
-old_clipboard = None
 def saveclipboard(restore=False, old_clipboard=None):
     """Enregistre le contenu du presse-papier. Le rétablit si ``restore=True``"""
     if restore and old_clipboard == None:
@@ -570,6 +569,7 @@ def show_file(options):
     ntexte = u""
     hidden = False  # Est-ce que le mot de passe a été caché ?
     lines = texte.split('\n')
+    old_clipboard = None
     for line in lines:
         catchPass = pass_regexp.match(line)
         if catchPass != None and options.clipboard:
@@ -586,6 +586,7 @@ def show_file(options):
     out.write(raw.encode("utf-8"))
     out.close()
     os.waitpid(proc.pid, 0)
+    # Repope ancien pass
     if options.clipboard:
         saveclipboard(restore=True, old_clipboard=old_clipboard)
 
