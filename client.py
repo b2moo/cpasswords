@@ -846,7 +846,10 @@ if __name__ == "__main__":
         options.verbose = False
     # On parse les roles fournis, et il doivent exister, ne pas être -w…
     # parse_roles s'occupe de ça
-    options.roles = parse_roles(options)
+    # NB : ça nécessite de se connecter au serveur, or, pour show_servers on n'en a pas besoin
+    # Il faudrait ptêtre faire ça plus proprement, en attendant, je ducktape.
+    if options.action != show_servers:
+        options.roles = parse_roles(options)
     
     # Si l'utilisateur a demandé une action qui nécessite un nom de fichier,
     # on vérifie qu'il a bien fourni un nom de fichier.
