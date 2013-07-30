@@ -155,6 +155,7 @@ def rmfile(filename):
 
 def backup(corps, fname, old):
     """Backupe l'ancienne version du fichier"""
+    os.umask(0077)
     back = open(getpath(fname, backup=True), 'a')
     back.write(json.dumps(old))
     back.write('\n')
