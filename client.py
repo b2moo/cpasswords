@@ -571,8 +571,12 @@ def show_file(options):
     lines = texte.split('\n')
     old_clipboard = None
     for line in lines:
-        catchPass = pass_regexp.match(line)
-        if catchPass != None and options.clipboard:
+        catchPass = None
+        # On essaie de trouver le pass pour le cacher dans le clipboard
+        # si ce n'est déjà fait et si c'est voulu
+        if not hidden and options.clipboard:
+            catchPass = pass_regexp.match(line)
+        if catchPass != None:
             hidden = True
             # On met le mdp dans le clipboard en mémorisant sont ancien contenu
             old_clipboard = clipboard(catchPass.group(1))
