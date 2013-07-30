@@ -11,6 +11,8 @@ avant de lancer make install ou make install-server.
  * Copiez le dépôt git sur votre machine :
     $ git clone git://git.crans.org/git/cranspasswords.git 
  * Si ce n'est déjà fait, indiquer votre clé publique sur gest_crans
+ * Pensez à changer votre username dans clientconfig.example.py si vous n'avez pas le même
+   sur votre machine et sur le serveur.
  * Lancez make install
  * Assurez-vous d'avoir ~/bin dans votre $PATH
  * Exécutez cranspasswords test pour voir si vous arrivez à récupérer le mot de passe de test
