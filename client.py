@@ -25,15 +25,28 @@ import time
 import datetime
 
 # Import de la config
+envvar = "CRANSPASSWORDS_CLIENT_CONFIG_DIR"
 try:
     # Oui, le nom de la commande est dans la config, mais on n'a pas encore accès à la config
     bootstrap_cmd_name = os.path.split(sys.argv[0])[1]
     sys.path.append(os.path.expanduser("~/.config/%s/" % (bootstrap_cmd_name,)))
     import clientconfig as config
 except ImportError:
-    if sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]]):
-        sys.stderr.write(u"Va lire le fichier README.\n".encode("utf-8"))
-    sys.exit(1)
+    ducktape_display_error = sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]])
+    envspecified = os.getenv(envvar, None)
+    if envspecified is None:
+        if ducktape_display_error:
+            sys.stderr.write(u"Va lire le fichier README.\n".encode("utf-8"))
+        sys.exit(1)
+    else:
+        # On a spécifié à la main le dossier de conf
+        try:
+            sys.path.append(envspecified)
+            import clientconfig as config
+        except ImportError:
+            if ducktape_display_error:
+                sys.stderr.write(u"%s est spécifiée, mais aucune config pour le client ne peut être importée." % (envvar))
+                sys.exit(1)
 
 #: Pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
 pass_regexp = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$',

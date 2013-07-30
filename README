@@ -15,6 +15,15 @@ avant de lancer make install ou make install-server.
  * Assurez-vous d'avoir ~/bin dans votre $PATH
  * Exécutez cranspasswords test pour voir si vous arrivez à récupérer le mot de passe de test
 
+ * Si vous voulez pouvoir importer client.py pour faire des choses dans ipython par exemple,
+   comme votre sys.argv[0] ne sera pas "cranspasswords", il aura du mal à savoir où il doit
+   aller cherche sa config.
+   Aidez-le avec :
+   export CRANSPASSWORDS_CLIENT_CONFIG_DIR=/path/to/config/dir/
+   
+   NB : le nom de cette variable n'est pas modifié
+   même si vous renommez la commande cranspasswords.
+
 == Installation et configuration du serveur ==
  * Copiez le dépôt git sur le serveur :
     $ git clone git://git.crans.org/git/cranspasswords.git
