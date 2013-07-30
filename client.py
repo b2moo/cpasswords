@@ -300,7 +300,8 @@ def rm_file(filename):
 def get_my_roles(options):
     """Retourne la liste des rôles de l'utilisateur, et également la liste des rôles dont il possède le role-w."""
     allroles = all_roles(options)
-    my_roles = [r for (r, users) in allroles.iteritems() if options.serverdata['user'] in users]
+    distant_username = allroles.pop("whoami")
+    my_roles = [r for (r, users) in allroles.iteritems() if distant_username in users]
     my_roles_w = [r[:-2] for r in my_roles if r.endswith("-w")]
     return (my_roles, my_roles_w)
 
@@ -415,6 +416,7 @@ def get_recipients_of_roles(options, roles):
     """Renvoie les destinataires d'une liste de rôles"""
     recipients = set()
     allroles = all_roles(options)
+    allroles.pop("whoami")
     for role in roles:
         for recipient in allroles[role]:
             recipients.add(recipient)
@@ -513,7 +515,9 @@ def show_files(options):
 def show_roles(options):
     """Affiche la liste des roles existants"""
     print(u"Liste des roles disponibles".encode("utf-8"))
-    for (role, usernames) in all_roles(options).iteritems():
+    allroles =  all_roles(options)
+    allroles.pop("whoami")
+    for (role, usernames) in allroles.iteritems():
         if not role.endswith('-w'):
             print((u" * %s : %s" % (role, ", ".join(usernames))).encode("utf-8"))
 

@@ -48,8 +48,13 @@ def writefile(filename, contents):
     f.close()
 
 def listroles():
-    """Liste des roles existant et de leurs membres"""
-    return serverconfig.ROLES
+    """Liste des roles existant et de leurs membres.
+       Renvoie également un rôle particulier ``"whoami"``, contenant l'username de l'utilisateur qui s'est connecté."""
+    d = serverconfig.ROLES
+    if d.has_key("whoami"):
+        raise ValueError('La rôle "whoami" ne devrait pas exister')
+    d["whoami"] = MYUID
+    return d
 
 def listkeys():
     """Liste les usernames et les (mail, fingerprint) correspondants"""
