@@ -79,7 +79,7 @@ GPG_TRUSTLEVELS = {
                     u"q" : (u"non définie", False),
                   }
 
-def gpg(command, args=None):
+def gpg(options, command, args=None):
     """Lance gpg pour la commande donnée avec les arguments
     donnés. Renvoie son entrée standard et sa sortie standard."""
     full_command = [GPG]
@@ -319,7 +319,7 @@ def update_keys(options):
     
     keys = all_keys(options)
     
-    _, stdout = gpg("receive-keys", [key for _, key in keys.values() if key])
+    _, stdout = gpg(options, "receive-keys", [key for _, key in keys.values() if key])
     return stdout.read().decode("utf-8")
 
 def check_keys(options, recipients=None, quiet=False):
@@ -341,7 +341,7 @@ def check_keys(options, recipients=None, quiet=False):
         keys = {u : val for (u, val) in keys.iteritems() if u in recipients}
     if speak:
         print("M : le mail correspond à un uid du fingerprint\nC : confiance OK (inclut la vérification de non expiration).\n")
-    _, gpgout = gpg('list-keys')
+    _, gpgout = gpg(options, 'list-keys')
     localring = parse_keys(gpgout)
     for (recipient, (mail, fpr)) in keys.iteritems():
         failed = u""
@@ -419,7 +419,7 @@ def encrypt(options, roles, contents):
             fpr_recipients.append("-r")
             fpr_recipients.append(fpr)
     
-    stdin, stdout = gpg("encrypt", fpr_recipients)
+    stdin, stdout = gpg(options, "encrypt", fpr_recipients)
     stdin.write(contents.encode("utf-8"))
     stdin.close()
     out = stdout.read().decode("utf-8")
@@ -428,9 +428,9 @@ def encrypt(options, roles, contents):
     else:
         return [True, out]
 
-def decrypt(contents):
+def decrypt(options, contents):
     """Déchiffre le contenu"""
-    stdin, stdout = gpg("decrypt")
+    stdin, stdout = gpg(options, "decrypt")
     stdin.write(contents.encode("utf-8"))
     stdin.close()
     return stdout.read().decode("utf-8")
@@ -539,7 +539,7 @@ def show_file(options):
             print(value.encode("utf-8")) # value contient le message d'erreur
         return
     passfile = value
-    (sin, sout) = gpg('decrypt')
+    (sin, sout) = gpg(options, 'decrypt')
     sin.write(passfile['contents'].encode("utf-8"))
     sin.close()
     texte = sout.read().decode("utf-8")
@@ -593,7 +593,7 @@ Enregistrez le fichier vide pour annuler.\n"""
         return
     else:
         passfile = value
-        (sin, sout) = gpg('decrypt')
+        (sin, sout) = gpg(options, 'decrypt')
         sin.write(passfile['contents'].encode("utf-8"))
         sin.close()
         texte = sout.read().decode("utf-8")
@@ -693,7 +693,7 @@ def recrypt_files(options):
     # On rechiffre
     to_put = [{'filename' : f['filename'],
                'roles' : f['roles'],
-               'contents' : encrypt(options, f['roles'], decrypt(f['contents']))}
+               'contents' : encrypt(options, f['roles'], decrypt(options, f['contents']))}
               for f in files]
     if to_put:
         if not options.quiet:
