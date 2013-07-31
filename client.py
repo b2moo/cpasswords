@@ -813,7 +813,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--clipboard', action='store_true', default=None,
         help="Stocker le mot de passe dans le presse papier")
     parser.add_argument('--no-clip', '--noclip', '--noclipboard', action='store_false', default=None,
-        dest='noclipboard',
+        dest='clipboard',
         help="Ne PAS stocker le mot de passe dans le presse papier")
     parser.add_argument('-f', '--force', action='store_true', default=False,
         help="Ne pas demander confirmation")
@@ -865,9 +865,12 @@ if __name__ == "__main__":
     ## On calcule les options qui dépendent des autres.
     ## C'est un peu un hack, peut-être que la méthode propre serait de surcharger argparse.ArgumentParser
     ## et argparse.Namespace, mais j'ai pas réussi à comprendre commenr m'en sortir.
-    # On utilise le clipboard si on n'a pas demandé explicitement à ne pas le faire,
-    # qu'on n'est pas en session distante et qu'on a xclip
-    options.clipboard = not options.noclipboard and bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
+    # ** Presse papier **
+    # Si l'utilisateur n'a rien dit (ni option --clipboard ni --noclipboard),
+    # on active le clipboard par défaut, à la condition
+    # que xclip existe et qu'il a un serveur graphique auquel parler.
+    if options.clipboard is None:
+        options.clipboard = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
     # On récupère les données du serveur à partir du nom fourni
     options.serverdata = config.servers[options.server]
     # Attention à l'ordre pour interactive
