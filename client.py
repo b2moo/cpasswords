@@ -273,7 +273,7 @@ def remote_command(options, command, arg=None, stdin_contents=None):
     proc = remote_proc(options, command, arg)
     if stdin_contents is not None:
         proc.stdin.write(json.dumps(stdin_contents))
-        proc.close()
+        proc.stdin.close()
     ret = proc.wait()
     raw_out = proc.stdout.read()
     if ret != 0:
