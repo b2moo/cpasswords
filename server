@@ -4,4 +4,4 @@
 # -- DS 01/08/2013
 
 cmd_name=cranspasswords
-sudo -n /usr/local/bin/${cmd_name}/server.py $*
+sudo -n /usr/local/bin/${cmd_name}/server.py "$@"
