@@ -38,6 +38,15 @@ avant de lancer make install ou make install-server.
  * Éditez /etc/cranspasswords/serverconfig.py pour qu'il soit conforme
    à vos désirs.
 
+== Troubleshoutings ==
+"""sudo: sorry, a password is required to run sudo"""
+    Côté client: Vérifier le ``server_path`` et les variables en dépendant,
+    dans le serverconfig.py. S'assurer qu'il n'existe pas de
+    clientconfig.py[c] résiduel dans le dossier de cranspasswords.
+    Côté serveur, s'assurer que le serveur est intallé au bon endroit
+    (/usr/local/bin/$NAME-server) et que le fichier sudoers est bien
+    installé (/etc/sudoers.d/$NAME) pour lancer le sudo sans mot de passe
+
 == Complétion ==
  * Pour avoir la bash-complétion, dans votre .bashrc :
   * Sourcez le fichier bash_completion présent dans le dépôt

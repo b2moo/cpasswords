@@ -15,7 +15,7 @@ ssh_path = '/usr/bin/ssh'
 server_path = '/usr/local/bin/%s-server' % (cmd_name,)
 
 #: Commande à exécuter sur le serveur après y être entré en ssh
-distant_cmd = "sudo %s" % (server_path,)
+distant_cmd = ["sudo", '-n', server_path]
 
 #: Liste des serveurs sur lesquels ont peut récupérer des mots de passe.
 #: 
@@ -25,13 +25,13 @@ distant_cmd = "sudo %s" % (server_path,)
 #:   le script sur le serveur distant.
 servers = {
     'default': {
-        'server_cmd': [ssh_path, 'vert.adm.crans.org', distant_cmd],
+        'server_cmd': [ssh_path, 'vert.adm.crans.org'] + distant_cmd,
     },
     # Utile pour tester
     'localhost': {
-        'server_cmd': [ssh_path, 'localhost', distant_cmd],
+        'server_cmd': [ssh_path, 'localhost'] + distant_cmd,
     },
     'ovh': {
-        'server_cmd': [ssh_path, 'ovh.crans.org', distant_cmd],
+        'server_cmd': [ssh_path, 'ovh.crans.org'] + distant_cmd,
     }
 }
