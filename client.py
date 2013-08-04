@@ -239,7 +239,12 @@ class simple_memoize(object):
            mais il faudra s'en préoccuper si un jour on veut changer le comportement."""
         if self.val == None:
             self.val = self.f(*args, **kwargs)
-        return copy.deepcopy(self.val)
+        # On évite de tout deepcopier. Typiquement, un subprocess.Popen
+        # ne devrait pas l'être (comme dans get_keep_alive_connection)
+        if type(self.val) in [dict, list]:
+            return copy.deepcopy(self.val)
+        else:
+            return self.val
 
 
 ######
@@ -258,6 +263,10 @@ def remote_proc(options, command, arg=None):
     full_command.append(command)
     if arg:
         full_command.append(arg)
+
+    if options.verbose and not options.quiet:
+        print("Running command %s ..." % " ".join(full_command))
+
     proc = subprocess.Popen(full_command,
                             stdin = subprocess.PIPE,
                             stdout = subprocess.PIPE,
@@ -265,34 +274,67 @@ def remote_proc(options, command, arg=None):
                             close_fds = True)
     return proc
 
+@simple_memoize
+def get_keep_alive_connection(options):
+    """Fabrique un process parlant avec le serveur suivant la commande
+    'keep-alive'. On utilise une fonction séparée pour cela afin
+    de memoizer le résultat, et ainsi utiliser une seule connexion"""
+    proc = remote_proc(options, 'keep-alive', None)
+    atexit.register(proc.stdin.close)
+    return proc
+
 def remote_command(options, command, arg=None, stdin_contents=None):
     """Exécute la commande distante, et retourne la sortie de cette
     commande"""
     detail = options.verbose and not options.quiet
+    keep_alive = options.serverdata.get('keep-alive', False)
     
-    proc = remote_proc(options, command, arg)
-    if stdin_contents is not None:
-        proc.stdin.write(json.dumps(stdin_contents))
-        proc.stdin.close()
-    ret = proc.wait()
-    raw_out = proc.stdout.read()
-    if ret != 0:
-        if not options.quiet:
-            print((u"Mauvais code retour côté serveur, voir erreur " +
-                   u"ci-dessus").encode('utf-8'),
-                  file=sys.stderr)
-            if options.verbose:
-                print("raw_output: %s" % raw_out)
-        sys.exit(ret)
+    if keep_alive:
+        conn = get_keep_alive_connection(options)
+        args = filter(None, [arg, stdin_contents])
+        msg = {u'action': unicode(command), u'args': args }
+        conn.stdin.write('%s\n' % json.dumps(msg))
+        conn.stdin.flush()
+        raw_out = conn.stdout.readline()
+    else:
+        proc = remote_proc(options, command, arg)
+        if stdin_contents is not None:
+            proc.stdin.write(json.dumps(stdin_contents))
+            proc.stdin.close()
+        ret = proc.wait()
+        raw_out = proc.stdout.read()
+        if ret != 0:
+            if not options.quiet:
+                print((u"Mauvais code retour côté serveur, voir erreur " +
+                       u"ci-dessus").encode('utf-8'),
+                      file=sys.stderr)
+                if detail:
+                    print("raw_output: %s" % raw_out)
+            sys.exit(ret)
     try:
-        return json.loads(raw_out)
+        answer = json.loads(raw_out.strip())
     except ValueError:
         if not options.quiet:
             print(u"Impossible de parser le résultat".encode('utf-8'),
                   file=sys.stderr)
-            if options.verbose:
+            if detail:
                 print("raw_output: %s" % raw_out)
             sys.exit(42)
+    if not keep_alive:
+        return answer
+    else:
+        try:
+            if answer[u'status'] != u'ok':
+                raise KeyError('Bad answer status')
+            return answer[u'content']
+        except KeyError:
+            if not options.quiet:
+                print(u"Réponse erronée du serveur".encode('utf-8'),
+                    file=sys.stderr)
+            if detail:
+                print("answer: %s" % repr(answer))
+            sys.exit(-1)
+
 
 @simple_memoize
 def all_keys(options):

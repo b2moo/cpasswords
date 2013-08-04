@@ -25,6 +25,8 @@ MYUID = pwd.getpwuid(os.getuid())[0]
 if MYUID == 'root':
     MYUID = os.environ['SUDO_USER']
 
+## Fonctions internes au serveur
+
 def validate(roles, mode='r'):
     """Vérifie que l'appelant appartient bien aux roles précisés
     Si mode mode='w', recherche un rôle en écriture
@@ -47,6 +49,73 @@ def writefile(filename, contents):
     f.write(contents.encode("utf-8"))
     f.close()
 
+class server_command(object):
+    """
+    Une instance est un décorateur pour la fonction servant de commande
+    externe du même nom"""
+
+    #: nom de la commande
+    name = None
+
+    #: fonction wrappée
+    decorated = None
+
+    #: (static) dictionnaire name => fonction
+    by_name = {}
+
+    #: rajoute un argument en fin de fonction à partir de stdin (si standalone)
+    stdin_input = False
+
+    #: Est-ce que ceci a besoin d'écrire ?
+    write = False
+
+    def __init__(self, name, stdin_input = False, write=False):
+        """
+         * ``name`` nom de l'action telle qu'appelée par le client
+         * ``stdin_input`` si True, stdin sera lu en mode non-keepalive, et
+                           remplira le dernier argument de la commande.
+         * ``write`` s'agit-il d'une commande en écriture ?
+        """
+        self.name = name
+        self.stdin_input = stdin_input
+        self.write = write
+        server_command.by_name[name] = self
+
+    def __call__(self, fun):
+        self.decorated = fun
+        return fun
+
+## Fonction exposées par le serveur
+@server_command('keep-alive')
+def keepalive():
+    """ Commande permettant de réaliser un tunnel json (un datagramme par ligne)
+    Un message entre le client et le serveur consiste en l'échange de dico
+
+    Message du client: {'action': "nom_de_l'action",
+                        'args': liste_arguments_passes_a_la_fonction}
+    Réponse du serveur: {'status': 'ok',
+        'content': retour_de_la_fonction,
+    }
+
+    """
+    for line in iter(sys.stdin.readline, ''):
+        data = json.loads(line.rstrip())
+        try:
+            # Une action du protocole = de l'ascii
+            action = data['action'].encode('ascii')
+            content = server_command.by_name[action].decorated(*data['args'])
+            status = u'ok'
+        except Exception as e:
+            status = u'error'
+            content = repr(e)
+        out = {
+            'status': status,
+            'content': content,
+        }
+        print(json.dumps(out, encoding='utf-8'))
+        sys.stdout.flush()
+
+@server_command('listroles')
 def listroles():
     """Liste des roles existant et de leurs membres.
        Renvoie également un rôle particulier ``"whoami"``, contenant l'username de l'utilisateur qui s'est connecté."""
@@ -56,10 +125,12 @@ def listroles():
     d["whoami"] = MYUID
     return d
 
+@server_command('listkeys')
 def listkeys():
     """Liste les usernames et les (mail, fingerprint) correspondants"""
     return serverconfig.KEYS
 
+@server_command('listfiles')
 def listfiles():
     """Liste les fichiers dans l'espace de stockage, et les roles qui peuvent y accéder"""
     os.chdir(serverconfig.STORE)
@@ -70,7 +141,8 @@ def listfiles():
         file_dict = json.loads(open(filename).read())
         files[filename[:-5]] = file_dict["roles"]
     return files
-    
+
+@server_command('getfile')
 def getfile(filename):
     """Récupère le fichier ``filename``"""
     filepath = getpath(filename)
@@ -83,13 +155,12 @@ def getfile(filename):
     except IOError:
         return [False, u"Le fichier %s n'existe pas." % filename]
      
-
-def getfiles():
+@server_command('getfiles', stdin_input=True)
+def getfiles(filenames):
     """Récupère plusieurs fichiers, lit la liste des filenames demandés sur stdin"""
-    stdin = sys.stdin.read()
-    filenames = json.loads(stdin)
     return [getfile(f) for f in filenames]
 
+# TODO ça n'a rien à faire là, à placer plus haut dans le code
 def _putfile(filename, roles, contents):
     """Écrit ``contents`` avec les roles ``roles`` dans le fichier ``filename``"""
     gotit, old = getfile(filename)
@@ -109,10 +180,9 @@ def _putfile(filename, roles, contents):
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
     return [True, u"Modification effectuée."]
 
-def putfile(filename):
+@server_command('putfile', stdin_input=True, write=True)
+def putfile(filename, parsed_stdin):
     """Écrit le fichier ``filename`` avec les données reçues sur stdin."""
-    stdin = sys.stdin.read()
-    parsed_stdin = json.loads(stdin)
     try:
         roles = parsed_stdin['roles']
         contents = parsed_stdin['contents']
@@ -120,10 +190,9 @@ def putfile(filename):
         return [False, u"Entrée invalide"]
     return _putfile(filename, roles, contents)
 
-def putfiles():
+@server_command('putfiles', stdin_input=True, write=True)
+def putfiles(parsed_stdin):
     """Écrit plusieurs fichiers. Lit les filenames sur l'entrée standard avec le reste."""
-    stdin = sys.stdin.read()
-    parsed_stdin = json.loads(stdin)
     results = []
     for fichier in parsed_stdin:
         try:
@@ -136,7 +205,7 @@ def putfiles():
             results.append(_putfile(filename, roles, contents))
     return results
 
-
+@server_command('rmfile', write=True)
 def rmfile(filename):
     """Supprime le fichier filename après avoir vérifié les droits sur le fichier"""
     gotit, old = getfile(filename)
@@ -153,6 +222,7 @@ def rmfile(filename):
     return u"Suppression effectuée"
 
 
+# TODO monter plus haut
 def backup(corps, fname, old):
     """Backupe l'ancienne version du fichier"""
     os.umask(0077)
@@ -162,6 +232,7 @@ def backup(corps, fname, old):
     back.write((u'* %s: %s\n' % (str(datetime.datetime.now()), corps)).encode("utf-8"))
     back.close()
 
+# TODO monter plus haut
 def notification(subject, corps, fname, old):
     """Envoie par mail une notification de changement de fichier"""
     conn = smtplib.SMTP('localhost')
@@ -180,43 +251,19 @@ def notification(subject, corps, fname, old):
     conn.sendmail(frommail, tomail, msg.as_string())
     conn.quit()
 
-WRITE_COMMANDS = ["putfile", "rmfile"]
-
 if __name__ == "__main__":
-    argv = sys.argv[1:]
-    if len(argv) not in [1, 2]:
-        sys.exit(1)
-    command = argv[0]
-    if serverconfig.READONLY and command in WRITE_COMMANDS:
+    argv = sys.argv[0:]
+    command_name = argv[1]
+
+    command = server_command.by_name[command_name]
+    if serverconfig.READONLY and command.write:
         raise IOError("Ce serveur est read-only.")
-    filename = None
-    try:
-        filename = argv[1]
-    except IndexError:
-        pass
-    
-    answer = None
-    if command == "listroles":
-        answer = listroles()
-    elif command == "listkeys":
-        answer = listkeys()
-    elif command == "listfiles":
-        answer = listfiles()
-    elif command == "getfiles":
-        answer = getfiles()
-    elif command == "putfiles":
-        answer = putfiles()
-    else:
-        if not filename:
-            print("filename nécessaire pour cette opération", file=sys.stderr)
-            sys.exit(1)
-        if command == "getfile":
-            answer = getfile(filename)
-        elif command == "putfile":
-            answer = putfile(filename)
-        elif command == "rmfile":
-            answer = rmfile(filename)
-        else:
-            sys.exit(1)
-    if not answer is None:
+
+    args = argv[2:]
+    # On veut des unicode partout
+    args = [ s.decode('utf-8') for s in args ]
+    if command.stdin_input:
+        args.append(json.loads(sys.stdin.read()))
+    answer = command.decorated(*args)
+    if answer is not None:
         print(json.dumps(answer))

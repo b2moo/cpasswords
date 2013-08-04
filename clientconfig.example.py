@@ -30,6 +30,7 @@ servers = {
     # Utile pour tester
     'localhost': {
         'server_cmd': [ssh_path, 'localhost'] + distant_cmd,
+        'keep-alive': True, # <-- experimental, n'ouvre qu'une connexion
     },
     'ovh': {
         'server_cmd': [ssh_path, 'ovh.crans.org'] + distant_cmd,
