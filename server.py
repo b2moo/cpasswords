@@ -244,8 +244,9 @@ def notification(subject, corps, fname, old):
     msg['From'] = serverconfig.CRANSP_MAIL
     msg['To'] = serverconfig.DEST_MAIL
     msg.preamble = u"%s report" % (serverconfig.cmd_name.decode(),)
-    info = MIMEText(corps + 
+    info = MIMEText(corps +
         u"\nLa version précédente a été sauvegardée." +
+        u"\n\nModification effectuée sur %s." % socket.gethostname() +
         u"\n\n-- \nCranspasswords.py", _charset="utf-8")
     msg.attach(info)
     conn.sendmail(frommail, tomail, msg.as_string())
