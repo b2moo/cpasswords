@@ -71,10 +71,10 @@ GPG_TRUSTLEVELS = {
                     u"-" : (u"inconnue (pas de valeur assignée)", False),
                     u"o" : (u"inconnue (nouvelle clé)", False),
                     u"i" : (u"invalide (self-signature manquante ?)", False),
-                    u"n" : (u"nulle", False),
-                    u"m" : (u"marginale", True),
-                    u"f" : (u"entière", True),
-                    u"u" : (u"ultime", True),
+                    u"n" : (u"nulle (il ne faut pas faire confiance à cette clé)", False),
+                    u"m" : (u"marginale (pas assez de lien de confiance vers cette clé)", False),
+                    u"f" : (u"entière (clé dans le réseau de confiance)", True),
+                    u"u" : (u"ultime (c'est probablement ta clé)", True),
                     u"r" : (u"révoquée", False),
                     u"e" : (u"expirée", False),
                     u"q" : (u"non définie", False),
@@ -395,11 +395,11 @@ def _check_encryptable(key):
        C'est-à-dire, que la clé est de confiance (et non expirée).
        Puis qu'on peut chiffrer avec, ou qu'au moins une de ses subkeys est de chiffrement (capability e)
        et est de confiance et n'est pas expirée"""
-    # Il faut avoir confiance la clé…
+    # Il faut que la clé soit dans le réseau de confiance…
     meaning, trustvalue = GPG_TRUSTLEVELS[key[u"trustletter"]]
     if not trustvalue:
         return u"La confiance en la clé est : %s" % (meaning,)
-    # …et pouvoir chiffrer avec…
+    # …et qu'on puisse chiffrer avec…
     if u"e" in key[u"capabilities"]:
         # …soit directement…
         return u""
