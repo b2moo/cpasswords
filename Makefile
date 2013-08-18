@@ -8,8 +8,6 @@ cmd_name=cranspasswords
 # Expression régulière et son remplacement, pour le renommage
 before=cmd_name = '${cmd_original_name}'
 after=cmd_name = '${cmd_name}'
-before2=cmd_name=${cmd_original_name}
-after2=cmd_name=${cmd_name}
 
 # Path du sudoer-file utilisé pour autoriser l'accès au script serveur
 sudoer_file_path=/etc/sudoers.d/${cmd_name}
@@ -25,12 +23,10 @@ build:
 rename:
 	@echo "Modification des variables pour renommer '${cmd_original_name}' en '${cmd_name}'"
 	@sed -i "s/^${before}$$/${after}/" serverconfig.example.py clientconfig.example.py
-	@sed -i "s/^${before2}$$/${after2}/" server
 
 rerename:
 	@echo "Remise en place des variables passées à '${cmd_name}' en leur valeur de départ '${cmd_original_name}'"
 	@sed -i "s/^${after}$$/${before}/" serverconfig.example.py clientconfig.example.py
-	@sed -i "s/^${after2}$$/${before2}/" server
 
 install:
 	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rename; fi
