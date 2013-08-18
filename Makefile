@@ -37,6 +37,7 @@ install:
 	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rerename; fi
 
 install-server:
+	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rename; fi
 	@echo "Création du sudoer-file."
 	@echo "# Autorisation locale d'éxécution de ${cmd_name}" > ${sudoer_file_path}
 	@echo " %${sudoer_group}   ALL=(root) NOPASSWD: /usr/local/bin/${cmd_name}-server" >> ${sudoer_file_path}
@@ -44,3 +45,4 @@ install-server:
 	install -d -g root -o root -m 0755 /etc/${cmd_name}/
 	install -g root -o root -m 0644 serverconfig.example.py /etc/${cmd_name}/serverconfig.py
 	install -d -m 700 /var/lib/${cmd_name}/db/
+	@if [ "${cmd_name}" != "${cmd_original_name}" ]; then make --quiet rerename; fi
