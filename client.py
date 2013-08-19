@@ -789,11 +789,11 @@ def recrypt_files(options):
     to_put = [{'filename' : f['filename'],
                'roles' : f['roles'],
                'contents' : encrypt(options, f['roles'], decrypt(options, f['contents']))}
-              for f in files]
+              for [success, f] in files]
     if to_put:
         if not options.quiet:
             print((u"Rechiffrement de %s" % (", ".join([f['filename'] for f in to_put]))).encode("utf-8"))
-        results = put_files(to_put)
+        results = put_files(options, to_put)
         # On affiche les messages de retour
         if not options.quiet:
             for i in range(len(results)):
