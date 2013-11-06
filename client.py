@@ -667,6 +667,11 @@ def edit_file(options):
     gotit, value = get_files(options, [fname])[0]
     nfile = False
     annotations = u""
+
+    my_roles, _ = get_my_roles(options)
+    new_roles = options.roles
+
+    # Cas du nouveau fichier
     if not gotit and not u"pas les droits" in value:
         nfile = True
         if not options.quiet:
@@ -677,11 +682,10 @@ def edit_file(options):
 aléatoire, pensez à rajouter une ligne "login: ${login}"
 Enregistrez le fichier vide pour annuler.\n"""
         texte = u"pass: %s\n" % gen_password()
-        if options.roles == []:
-            if not options.quiet:
-                print(u"Vous ne possédez aucun rôle en écriture ! Abandon.".encode("utf-8"))
-            return
-        passfile = {'roles' : options.roles}
+
+        if new_roles is None:
+            new_roles = parse_roles(options, cast=True)
+        passfile = {'roles' : new_roles}
     elif not gotit:
         if not options.quiet:
             print(value.encode("utf-8")) # value contient le message d'erreur
@@ -692,28 +696,36 @@ Enregistrez le fichier vide pour annuler.\n"""
         sin.write(passfile['contents'].encode("utf-8"))
         sin.close()
         texte = sout.read().decode("utf-8")
-    # On peut vouloir chiffrer un fichier sans avoir la possibilité de le lire dans le futur
-    # Mais dans ce cas on préfère demander confirmation
-    my_roles, _ = get_my_roles(options)
-    if not options.force and set(options.roles).intersection(my_roles) == set():
-        message = u"""Vous vous apprêtez à perdre vos droits de lecture (ROLES ne contient rien parmi : %s) sur ce fichier, continuer ?"""
-        message = message % (", ".join(my_roles),)
+        if new_roles is None:
+            new_roles = passfile['roles']
+
+    # On vérifie qu'on a le droit actuellement (plutôt que de se faire jeter
+    # plus tard)
+    if not any(r + '-w' in my_roles for r in passfile['roles']):
+        if not options.quiet:
+            print(u"Aucun rôle en écriture pour ce fichier ! Abandon.".encode("utf-8"))
+        return
+
+    # On peut vouloir chiffrer un fichier sans avoir la possibilité de le lire
+    # dans le futur, mais dans ce cas on préfère demander confirmation
+    if not any(r + '-w' in my_roles for r in new_roles):
+        message = u"""Vous vous apprêtez à perdre vos droits d'écritures""" + \
+            """(ROLES ne contient rien parmi : %s) sur ce fichier, continuer ?"""
+        message = message % (", ".join(r[:-2] for r in my_roles if '-w' in r),)
         if not confirm(options, message):
-            sys.exit(2)
-    # On récupère les nouveaux roles si ils ont été précisés, sinon on garde les mêmes
-    passfile['roles'] = options.roles or passfile['roles']
+            return
     
     annotations += u"""Ce fichier sera chiffré pour les rôles suivants :\n%s\n
 C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
            ', '.join(passfile['roles']),
-           '\n'.join(' %s' % rec for rec in get_dest_of_roles(options, passfile['roles']))
+           '\n'.join(' %s' % rec for rec in get_dest_of_roles(options, new_roles))
         )
     
     ntexte = editor(texte, annotations)
     
-    if ((not nfile and ntexte in [u'', texte]              # pas nouveau, vidé ou pas modifié
-         and set(options.roles) == set(passfile['roles'])) # et on n'a même pas touché à ses rôles,
-        or (nfile and ntexte == u'')):                     # ou alors on a créé un fichier vide.
+    if ((not nfile and ntexte in [u'', texte]          # pas nouveau, vidé ou pas modifié
+         and set(new_roles) == set(passfile['roles'])) # et on n'a même pas touché à ses rôles,
+        or (nfile and ntexte == u'')):                 # ou alors on a créé un fichier vide.
         message = u"Pas de modification à enregistrer.\n"
         message += u"Si ce n'est pas un nouveau fichier, il a été vidé ou n'a pas été modifié (même pas ses rôles).\n"
         message += u"Si c'est un nouveau fichier, vous avez tenté de le créer vide."
@@ -721,7 +733,7 @@ C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
             print(message.encode("utf-8"))
     else:
         ntexte = texte if ntexte == None else ntexte
-        success, message = put_password(options, passfile['roles'], ntexte)
+        success, message = put_password(options, new_roles, ntexte)
         print(message.encode("utf-8"))
 
 def confirm(options, text):
@@ -802,17 +814,22 @@ def recrypt_files(options):
         if not options.quiet:
             print(u"Aucun fichier n'a besoin d'être rechiffré".encode("utf-8"))
 
-def parse_roles(options):
+def parse_roles(options, cast=False):
     """Interprête la liste de rôles fournie par l'utilisateur.
-       Si il n'en a pas fourni, on considère qu'il prend tous ceux pour lesquels il a le -w.
+       Si il n'en a pas fourni, c'est-à-dire que roles
+       vaut None, alors on considère cette valeur comme valide.
+       Cependant, si ``cast`` est vraie, cette valeur est remplacée par
+       tous les roles en écriture (*-w) de l'utilisateur.
        
        Renvoie ``False`` si au moins un de ces rôles pose problème.
        
        poser problème, c'est :
         * être un role-w (il faut utiliser le role sans le w)
         * ne pas exister dans la config du serveur
-    
     """
+    if options.roles is None and not cast:
+        return options.roles
+
     strroles = options.roles
     allroles = all_roles(options)
     _, my_roles_w = get_my_roles(options)
