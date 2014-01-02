@@ -1,0 +1,12 @@
+ * Replication auto
+ * ./configure
+    * Tester python
+    * Tester xclip
+    * Proposer des profils tous faits dans un sous-dosier
+ * refaire Makefile
+ * make update (après git pull)
+ * remplissage via ldap
+ * installation de dev
+ * retirer le binaire serveur de /usr/local/bin/
+ * Modulariser le code (client.py devient gros)
+ * renommer en "cpasswords" ? (aka common passwords :p)

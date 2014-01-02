@@ -1,0 +1,11 @@
+
+Pour tester rapidement ses modifs :
+
+Contenu de mon ~/bin/cranspasswords <EOF
+#!/bin/sh
+CRANSPASSWORDS_CLIENT_CONFIG_DIR=~/.config/cranspasswords ~/crans/cranspasswords/client.py "$@"
+EOF
+
+où ~/crans/cranspasswords est le chemin vers mon dépôt git.
+
+Penser à effacer tout clientconfig.pyc? résiduel du dépôt.
