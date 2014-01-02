@@ -3,36 +3,20 @@ Explique les modifications entre les versions, surtout si on casse
 la backward-compatibility.
 
 
-== Disclaimer ==
+== Overview ==
 
-cranspasswords va maintenant posséder des branches.
+cranspasswords possède plusieurs branches.
+ * master : branche à utiliser en production.
  * dev : ce qui est dedans a des chances d'être cassé.
    Plein d'essais ou de trucs cools, mais si ça marche pas c'est normal.
- * master : ça marche, mais c'est pas forcément backward-compatible.
- * 0.1, 0.2,… : ça marche, ça n'intègre plus de nouvelles fonctionnalités,
-   seulement d'éventuels bugfix, et c'est backward-compatible.
+ * 0.1, 0.2,… : anciennes versions (si vieux serveur),
+   ça n'intègre plus de nouvelles fonctionnalités, seulement d'éventuels bugfix.
 
+=== 0.1.5 ===
+''Pour voir cette version, git show 0.1.5''
 
-Si vous ne voulez pas réfléchir : passez sur la branche 0.1
-
-== version 0.1 ==
-1ère version de cranspasswords une fois passé à ce système de branches.
-
-Les version ci-dessous sont basées sur la version 0.1 et introduisent
-des modifications non backward-compatibles.
-=== 0.1.1 ===
-''Pour voir cette version, git show 0.1.1''
-
-La bash_complétion a changé pour ne plus hardcoder le nom cranspasswords
-
-Pour récupérer la bash_complétion comme avant :
- * sourcer bash_completion et non plus cranspasswords_bash_completion
- * exécuter quelque part "complete -F _cranspasswords_completion cranspasswords"
-
-=== 0.1.2 ===
-''Pour voir cette version, git show 0.1.2''
-
-Le fichier à exécuter n'est plus cranspasswords.py mais client.py
+Les nouveaux clients s'attendent à ce que le serveur renvoie le rôle spécial
+"whoami".
 
 === 0.1.2-5 ===
 ''Pour voir cette version, git show 0.1.2-5''
@@ -42,18 +26,32 @@ Le fichier à exécuter n'est plus cranspasswords.py mais client.py
 Le path du script sur le serveur n'est plus /root/cranspasswords/server.py
 mais /usr/local/bin/cranspasswords-server
 
+=== 0.1.4 ===
+''Pour voir cette version, git show 0.1.4''
+
+Les fonctions serveurs getfile et putfile au singulier ne sont plus garanties de
+fonctionner.
+
 === 0.1.3 ===
 ''Pour voir cette version, git show 0.1.3''
 
 Les fichiers de mdp ne sont plus stockés dans /root/cranspasswords/db/
 mais /var/lib/cranspasswords/db/.
 
-=== 0.1.4 ===
-''Pour voir cette version, git show 0.1.4''
+=== 0.1.2 ===
+''Pour voir cette version, git show 0.1.2''
 
-Les fonctions serveurs getfile et putfile au singulier ne sont plus garanties de fonctionner.
+Le fichier à exécuter n'est plus cranspasswords.py mais client.py
 
-=== 0.1.5 ===
-''Pour voir cette version, git show 0.1.5''
+=== 0.1.1 ===
+''Pour voir cette version, git show 0.1.1''
 
-Les nouveaux clients s'attendent à ce que le serveur renvoie le rôle spécial "whoami".
+La bash_complétion a changé pour ne plus hardcoder le nom cranspasswords
+
+Pour récupérer la bash_complétion comme avant :
+ * sourcer bash_completion et non plus cranspasswords_bash_completion
+ * exécuter quelque part "complete -F _cranspasswords_completion cranspasswords"
+
+== version 0.1 ==
+Première version de cranspasswords une fois passé aux systèmes de branches.
+
