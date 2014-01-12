@@ -10,3 +10,25 @@
  * retirer le binaire serveur de /usr/local/bin/
  * Modulariser le code (client.py devient gros)
  * renommer en "cpasswords" ? (aka common passwords :p)
+diff --git a/client.py b/client.py
+index 6ba2a6e..6486e11 100755
+--- a/client.py
++++ b/client.py
+@@ -805,6 +805,9 @@ def recrypt_files(options):
+     if to_put:
+         if not options.quiet:
+             print((u"Rechiffrement de %s" % (", ".join([f['filename'] for f in to_put]))).encode("utf-8"))
++        if options.simulate:
++            print((u"Did nothing").encode('utf-8'))
++            return
+         results = put_files(options, to_put)
+         # On affiche les messages de retour
+         if not options.quiet:
+@@ -915,6 +918,7 @@ if __name__ == "__main__":
+                 (par défaut, tous vos rôles en écriture seront utilisés).
+                 Avec --recrypt-files, tous les fichiers ayant au moins un de ces roles (et pour lesquels vous avez le droit d'écriture) seront rechiffrés
+                 (par défaut, tous les fichiers pour lesquels vous avez les droits en écriture sont rechiffrés).""")
++    parser.add_argument('--simulate', action='store_true', default=False)
+     parser.add_argument('fname', nargs='?', default=None,
+         help="Nom du fichier à afficher")
+     

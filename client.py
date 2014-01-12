@@ -520,6 +520,9 @@ def encrypt(options, roles, contents):
 def decrypt(options, contents):
     """Déchiffre le contenu"""
     stdin, stdout = gpg(options, "decrypt")
+    if type(contents) != unicode: # Kludge (broken db ?)
+        print("Eau dans le gaz (decrypt)" + repr(contents))
+        contents = contents[-1]
     stdin.write(contents.encode("utf-8"))
     stdin.close()
     return stdout.read().decode("utf-8")
@@ -629,7 +632,11 @@ def show_file(options):
         return
     passfile = value
     (sin, sout) = gpg(options, 'decrypt')
-    sin.write(passfile['contents'].encode("utf-8"))
+    content = passfile['contents'] # Kludge (broken db ?)
+    if type(content) == list:
+        print("Eau dans le gaz")
+        content = content[-1]
+    sin.write(content.encode("utf-8"))
     sin.close()
     texte = sout.read().decode("utf-8")
     ntexte = u""
@@ -800,7 +807,7 @@ def recrypt_files(options):
     # On rechiffre
     to_put = [{'filename' : f['filename'],
                'roles' : f['roles'],
-               'contents' : encrypt(options, f['roles'], decrypt(options, f['contents']))}
+               'contents' : encrypt(options, f['roles'], decrypt(options, f['contents']))[-1]}
               for [success, f] in files]
     if to_put:
         if not options.quiet:
