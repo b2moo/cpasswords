@@ -300,9 +300,11 @@ def remote_command(options, command, arg=None, stdin_contents=None):
         proc = remote_proc(options, command, arg)
         if stdin_contents is not None:
             proc.stdin.write(json.dumps(stdin_contents))
-            proc.stdin.close()
-        ret = proc.wait()
-        raw_out = proc.stdout.read()
+            proc.stdin.flush()
+
+        raw_out, raw_err = proc.communicate()
+        ret = proc.returncode
+
         if ret != 0:
             if not options.quiet:
                 print((u"Mauvais code retour côté serveur, voir erreur " +
