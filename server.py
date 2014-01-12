@@ -178,6 +178,11 @@ def _putfile(filename, roles, contents):
     notification(u"Modification de %s" % filename, corps, filename, old)
     
     filepath = getpath(filename)
+    if type(contents) not in [unicode, str]:  # fix that later
+        return [False, u"Erreur: merci de patcher votre cpasswords !"
+             + "(contents should be encrypted str)"]
+        # Or fuck yourself
+
     writefile(filepath, json.dumps({'roles': roles, 'contents': contents}))
     return [True, u"Modification effectuée."]
 
