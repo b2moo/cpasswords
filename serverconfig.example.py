@@ -95,6 +95,7 @@ NOUNOUS = RTC + [
     u'legallic',
     u'pommeret',
     u'serrano',
+    u'lasseri',
     ]
 
 # Autogen:
@@ -112,7 +113,6 @@ APPRENTIS = [
     u'kherouf',
     u'randazzo',
     u'tilquin',
-    u'lasseri',
     u'epalle',
     u'soret',
     u'gstalter',
