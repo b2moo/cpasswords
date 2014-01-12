@@ -773,9 +773,11 @@ def my_update_keys(options):
     """Met à jour les clés existantes et affiche le résultat"""
     print(update_keys(options).encode("utf-8"))
 
-def recrypt_files(options):
+def recrypt_files(options, strict=False):
     """Rechiffre les fichiers.
-       Ici, la signification de ``options.roles`` est : on ne veut rechiffrer que les fichiers qui ont au moins un de ces roles.
+       Ici, la signification de ``options.roles`` est :
+	 strict     => on chiffre les fichiers dont *tous* les rôles sont dans la liste
+	 non strict => on ne veut rechiffrer que les fichiers qui ont au moins un de ces roles.
        """
     rechiffre_roles = options.roles
     _, my_roles_w = get_my_roles(options)
@@ -785,11 +787,18 @@ def recrypt_files(options):
     
     # La liste des fichiers
     allfiles = all_files(options)
-    # On ne demande que les fichiers qui ont au moins un role dans ``options.roles``
-    # et dans lesquels on peut écrire
+
+    def is_wanted(fileroles):
+        # On drope ce qui ne peut être écrit
+        if not set(fileroles).intersection(my_roles_w):
+            return False
+        if strict:
+            return set(fileroles).issubset(rechiffre_roles)
+        else:
+            return bool(set(fileroles).intersection(rechiffre_roles))
+
     askfiles = [filename for (filename, fileroles) in allfiles.iteritems()
-                         if set(fileroles).intersection(options.roles) != set()
-                         and set(fileroles).intersection(my_roles_w) != set()]
+                         if is_wanted(fileroles) ]
     files = get_files(options, askfiles)
     # Au cas où on aurait échoué à récupérer ne serait-ce qu'un de ces fichiers,
     # on affiche le message d'erreur correspondant et on abandonne.
@@ -915,13 +924,20 @@ if __name__ == "__main__":
         help="""Rechiffrer les mots de passe.
                 (Avec les mêmes rôles que ceux qu'ils avant.
                  Cela sert à mettre à jour les recipients pour qui un password est chiffré)""")
-    
+    action_grp.add_argument('--strict-recrypt-files', action='store_const', dest='action',
+        default=show_file, const=lambda x:recrypt_files(x, strict=True),
+        help="""Rechiffrer les mots de passe (mode strict, voir --roles)""")
+
     parser.add_argument('--roles', nargs='?', default=None,
-        help="""Liste de roles (séparés par des virgules).
-                Avec --edit, le fichier sera chiffré pour exactement ces roles
-                (par défaut, tous vos rôles en écriture seront utilisés).
-                Avec --recrypt-files, tous les fichiers ayant au moins un de ces roles (et pour lesquels vous avez le droit d'écriture) seront rechiffrés
-                (par défaut, tous les fichiers pour lesquels vous avez les droits en écriture sont rechiffrés).""")
+        help="""Liste de roles (séparés par des virgules). Par défaut, tous les
+                rôles en écriture (sauf pour l'édition, d'un fichier existant).
+                Avec --edit: le fichier sera chiffré pour exactement ces roles
+                Avec --(strict-)recrypt-files :
+                    sert à sélectionnenr les fichiers à rechiffrer
+                    * non-strict: tout fichier possédant un des rôles listé
+                    * strict: tout fichier dont *tous* les rôles sont dans la
+                        liste
+            """)
     parser.add_argument('fname', nargs='?', default=None,
         help="Nom du fichier à afficher")
     
