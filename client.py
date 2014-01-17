@@ -561,12 +561,17 @@ def editor(texte, annotations=u""):
     atexit.register(f.close)
     if annotations:
         annotations = "# " + annotations.replace("\n", "\n# ")
-    f.write((texte + "\n" + annotations).encode("utf-8"))
+        # Usually, there is already an ending newline in a text document
+        if texte[-1] != '\n':
+            annotations = '\n' + annotations
+        else:
+            annotations += '\n'
+    f.write((texte + annotations).encode("utf-8"))
     f.flush()
     proc = subprocess.Popen([os.getenv('EDITOR', '/usr/bin/editor'), f.name])
     os.waitpid(proc.pid, 0)
     f.seek(0)
-    ntexte = f.read().decode("utf-8")
+    ntexte = f.read().decode("utf-8", errors='ignore')
     f.close()
     ntexte = u'\n'.join(filter(lambda l: not l.startswith('#'), ntexte.split('\n')))
     return ntexte
@@ -718,7 +723,7 @@ Enregistrez le fichier vide pour annuler.\n"""
     # On peut vouloir chiffrer un fichier sans avoir la possibilité de le lire
     # dans le futur, mais dans ce cas on préfère demander confirmation
     if not any(r + '-w' in my_roles for r in new_roles):
-        message = u"""Vous vous apprêtez à perdre vos droits d'écritures""" + \
+        message = u"""Vous vous apprêtez à perdre vos droits en écriture""" + \
             """(ROLES ne contient rien parmi : %s) sur ce fichier, continuer ?"""
         message = message % (", ".join(r[:-2] for r in my_roles if '-w' in r),)
         if not confirm(options, message):
