@@ -178,7 +178,7 @@ def _putfile(filename, roles, contents):
     notification(u"Modification de %s" % filename, corps, filename, old)
     
     filepath = getpath(filename)
-    if type(contents) not in [unicode, str]:  # fix that later
+    if type(contents) != unicode:
         return [False, u"Erreur: merci de patcher votre cpasswords !"
              + "(contents should be encrypted str)"]
         # Or fuck yourself
