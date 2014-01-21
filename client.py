@@ -46,9 +46,11 @@ def get_config_path():
 def get_server_data(options):
     """Get/load the config dictionnary"""
     Config = ConfigParser.ConfigParser()
-    for file in os.listdir(options.config_path):
-        if file.endswith("ini"):
-           Config.read(os.path.join(options.config_path, file))
+    Config.read([
+        os.path.join(options.config_path, f)
+        for f in os.listdir(options.config_path)
+        if f.endswith("ini")
+    ])
     try:
         config={}
         for opt in Config.options(options.server):
@@ -59,12 +61,16 @@ def get_server_data(options):
             else:
                 config[opt]=Config.get(options.server, opt)
         return config
-    except (NoSectionError, NoOptionError, IOError):
+    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, IOError) as e:
+        print("%s" % e)
         # <deprecated>
-        sys.path.insert(0, options.config_path)
-        import clientconfig
-        return clientconfig.servers[options.server]
-        # </deprecated>
+        try:
+           sys.path.insert(0, options.config_path)
+           import clientconfig
+           return clientconfig.servers[options.server]
+        except ImportError:
+            sys.stderr.write("No server '%s' found\n" % options.server)
+            raise ValueError("No server '%s' found" % options.server)
 
 #: Pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
 pass_regexp = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$',
@@ -617,18 +623,28 @@ def show_roles(options):
 def show_servers(options):
     """Affiche la liste des serveurs disponibles"""
     print(u"Liste des serveurs disponibles".encode("utf-8"))
-    os.chdir(options.config_path)
-    for fname in glob.glob('*.srv'):
-        print(" * " + fname[:-4])
+    Config = ConfigParser.ConfigParser()
+    Config.read([
+        os.path.join(options.config_path, f)
+        for f in os.listdir(options.config_path)
+        if f.endswith("ini")
+    ])
+    servers=set(Config.sections())
     # <deprecated>
     sys.path.append(options.config_path)
     try:
         import clientconfig
-        for srv in clientconfig.servers.iterkeys():
-            print(" * " + srv.encode('utf-8'))
+        servers = servers.union([
+            srv.encode('utf-8')
+            for srv in clientconfig.servers.iterkeys()
+        ])
     except ImportError:
         pass
     # </deprecated>
+    servers=list(servers)
+    servers.sort()
+    for srv in servers:
+        print(" * %s" % srv)
 
 def saveclipboard(restore=False, old_clipboard=None):
     """Enregistre le contenu du presse-papier. Le rétablit si ``restore=True``"""
@@ -991,8 +1007,6 @@ if __name__ == "__main__":
     if options.clipboard is None:
         options.clipboard = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
 
-    # On récupère les données du serveur à partir du nom fourni
-    options.serverdata = get_server_data(options)
     # Attention à l'ordre pour interactive
     #  --quiet override --verbose
     if options.quiet:
@@ -1003,6 +1017,8 @@ if __name__ == "__main__":
     # Il faudrait ptêtre faire ça plus proprement, en attendant, je ducktape.
     if options.action != show_servers:
         options.roles = parse_roles(options)
+        # On récupère les données du serveur à partir du nom fourni
+        options.serverdata = get_server_data(options)
     
     # Si l'utilisateur a demandé une action qui nécessite un nom de fichier,
     # on vérifie qu'il a bien fourni un nom de fichier.
