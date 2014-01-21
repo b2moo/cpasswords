@@ -1,3 +1,10 @@
+But de la branche:
+ * Garder le même protocole de communication
+ * Moduler le code en plusieurs fichiers
+ * Changer le format des fichiers de confs, en gardant l'ancien format
+    pour le moment
+ * Renommage progressif en cpasswords (et virer les kludges de noms
+    de fichiers)
 
 Pour tester rapidement ses modifs :
 

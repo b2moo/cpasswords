@@ -24,30 +24,35 @@ import string
 import time
 import datetime
 import copy
+import glob
 
 # Import de la config
-envvar = "CRANSPASSWORDS_CLIENT_CONFIG_DIR"
-try:
-    # Oui, le nom de la commande est dans la config, mais on n'a pas encore accès à la config
-    bootstrap_cmd_name = os.path.split(sys.argv[0])[1]
-    sys.path.append(os.path.expanduser("~/.config/%s/" % (bootstrap_cmd_name,)))
-    import clientconfig as config
-except ImportError:
-    ducktape_display_error = sys.stderr.isatty() and not any([opt in sys.argv for opt in ["-q", "--quiet"]])
-    envspecified = os.getenv(envvar, None)
-    if envspecified is None:
-        if ducktape_display_error:
-            sys.stderr.write(u"Va lire le fichier README.\n".encode("utf-8"))
-        sys.exit(1)
-    else:
-        # On a spécifié à la main le dossier de conf
-        try:
-            sys.path.append(envspecified)
-            import clientconfig as config
-        except ImportError:
-            if ducktape_display_error:
-                sys.stderr.write(u"%s est spécifiée, mais aucune config pour le client ne peut être importée." % (envvar))
-                sys.exit(1)
+def get_config_path():
+    """Where to get .srv files (and old-fashioned clientconfig.py)"""
+    path = os.getenv("CPASSWORDS_CONFIG_PATH", None)
+    # <deprecated>
+    if not path:
+        path = os.getenv("CRANSPASSWORDS_CLIENT_CONFIG_DIR", None)
+    if not path:
+        bootstrap_cmd_name = os.path.split(sys.argv[0])[1]
+        path = os.path.expanduser("~/.config/%s/" % (bootstrap_cmd_name,))
+    # </deprecated>
+    if not path:
+        path = os.path.expanduser("~/.config/cpasswords")
+    return path
+
+def get_server_data(options):
+    """Get/load the config dictionnary"""
+    srv_path = os.path.join(options.config_path, options.server + '.srv')
+    try:
+        with open(srv_path, 'r') as srv_file:
+            return json.load(srv_file)
+    except IOError:
+        # <deprecated>
+        sys.path.insert(0, options.config_path)
+        import clientconfig
+        return clientconfig.servers[options.server]
+        # </deprecated>
 
 #: Pattern utilisé pour détecter la ligne contenant le mot de passe dans les fichiers
 pass_regexp = re.compile('[\t ]*pass(?:word)?[\t ]*:[\t ]*(.*)\r?\n?$',
@@ -600,8 +605,18 @@ def show_roles(options):
 def show_servers(options):
     """Affiche la liste des serveurs disponibles"""
     print(u"Liste des serveurs disponibles".encode("utf-8"))
-    for server in config.servers.keys():
-        print((u" * " + server).encode("utf-8"))
+    os.chdir(options.config_path)
+    for fname in glob.glob('*.srv'):
+        print(" * " + fname[:-4])
+    # <deprecated>
+    sys.path.append(options.config_path)
+    try:
+        import clientconfig
+        for srv in clientconfig.servers.iterkeys():
+            print(" * " + srv.encode('utf-8'))
+    except ImportError:
+        pass
+    # </deprecated>
 
 def saveclipboard(restore=False, old_clipboard=None):
     """Enregistre le contenu du presse-papier. Le rétablit si ``restore=True``"""
@@ -950,6 +965,9 @@ if __name__ == "__main__":
     
     # On parse les options fournies en commandline
     options = parser.parse_args(sys.argv[1:])
+
+    # config_path
+    options.config_path = get_config_path()
     
     ## On calcule les options qui dépendent des autres.
     ## C'est un peu un hack, peut-être que la méthode propre serait de surcharger argparse.ArgumentParser
@@ -960,8 +978,9 @@ if __name__ == "__main__":
     # que xclip existe et qu'il a un serveur graphique auquel parler.
     if options.clipboard is None:
         options.clipboard = bool(os.getenv('DISPLAY')) and os.path.exists('/usr/bin/xclip')
+
     # On récupère les données du serveur à partir du nom fourni
-    options.serverdata = config.servers[options.server]
+    options.serverdata = get_server_data(options)
     # Attention à l'ordre pour interactive
     #  --quiet override --verbose
     if options.quiet:
