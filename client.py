@@ -25,6 +25,8 @@ import time
 import datetime
 import copy
 import glob
+import ConfigParser
+import shlex
 
 # Import de la config
 def get_config_path():
@@ -43,11 +45,21 @@ def get_config_path():
 
 def get_server_data(options):
     """Get/load the config dictionnary"""
-    srv_path = os.path.join(options.config_path, options.server + '.srv')
+    Config = ConfigParser.ConfigParser()
+    for file in os.listdir(options.config_path):
+        if file.endswith("ini"):
+           Config.read(os.path.join(options.config_path, file))
     try:
-        with open(srv_path, 'r') as srv_file:
-            return json.load(srv_file)
-    except IOError:
+        config={}
+        for opt in Config.options(options.server):
+            if opt in ['keep-alive']:
+                config[opt]=Config.getboolean(options.server, opt)
+            elif opt in ['server_cmd']:
+                config[opt]=shlex.split(Config.get(options.server, opt))
+            else:
+                config[opt]=Config.get(options.server, opt)
+        return config
+    except (NoSectionError, NoOptionError, IOError):
         # <deprecated>
         sys.path.insert(0, options.config_path)
         import clientconfig

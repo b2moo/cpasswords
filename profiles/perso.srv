@@ -1,3 +1,0 @@
-{
-    "server_cmd": ["sudo", "/usr/local/bin/cranspasswords-server"]
-}

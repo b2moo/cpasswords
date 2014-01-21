@@ -2,7 +2,7 @@ Ce dossier contient des exemples de config et servira à terme à
 l'installation des fichiers de config (via configure et make).
 
 Pour l'instant,
-$ for f in `ls *.srv`; do ln -s `pwd`/$f ~/.config/cranspasswords/$f; done
+$ for f in `ls *.ini`; do ln -s `pwd`/$f ~/.config/cranspasswords/$f; done
 
 Puis choisir son default (au crans, vert)
 $ cd ~/.config/cranspasswords/; ln -s vert.srv default.srv
