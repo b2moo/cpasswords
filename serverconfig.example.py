@@ -45,7 +45,7 @@ KEYS = {
     u'legallic': (u'legallic@crans.org', u'4BDD2DC3F10C26B9BC3B0BD93602E1C9A94025B0'),
     u'lerisson': (u'lerisson@crans.org', None),
     u'maioli': (u'maioli@crans.org', None),
-    u'parret-freaud': (u'parret-freaud@crans.org', u'A93D3EB37C3669F89C01F9AE13AC8F777D980513'),
+    u'parret-freaud': (u'apf@crans.org', u'41049BA24909F12F958386A336381C4C2CBB08AA'),
     u'samir': (u'samir@crans.org', u'C7B8823E96E8DC2798970340C86AD2AA41C2B76B'),
     u'tvincent': (u'vincent.thomas@crans.org', u'DFB04CE4394B1115C587AE101C6BE33AC5C4ACC0'),
 #Autogen
@@ -67,7 +67,8 @@ KEYS = {
     u'randazzo': (u'randazzo@crans.org', None),
     u'epalle': (u'epalle@crans.org', None),
     u'bonaque': (u'bonaque@crans.org', None),
-    u'kviard': (u'kviard@crans.org', None)
+    u'kviard': (u'kviard@crans.org', None),
+    u'delorme': (u'jordy@crans.org', u'E2250729CF7D2C801748D33F8219ECBA6B1DD5EF'),
 }
 
 #: Les variables suivantes sont utilisées pour définir le dictionnaire des
@@ -96,6 +97,7 @@ NOUNOUS = RTC + [
     u'pommeret',
     u'serrano',
     u'lasseri',
+    u'delorme',
     ]
 
 # Autogen:
