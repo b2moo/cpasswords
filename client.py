@@ -707,7 +707,12 @@ Enregistrez le fichier vide pour annuler.\n"""
     else:
         passfile = value
         (sin, sout) = gpg(options, 'decrypt')
-        sin.write(passfile['contents'].encode("utf-8"))
+        contents = passfile['contents']
+        # <ducktape> (waddle waddle)
+        if isinstance(contents, list):
+            contents = contents[-1]
+        # </ducktape>
+        sin.write(contents.encode("utf-8"))
         sin.close()
         texte = sout.read().decode("utf-8")
         if new_roles is None:
