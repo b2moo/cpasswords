@@ -1,15 +1,20 @@
  * Replication auto
+ * CLI
+ * prepare python3 \o/
  * ./configure
     * Tester python
     * Tester xclip
     * Proposer des profils tous faits dans un sous-dosier
  * refaire Makefile
+    * Système de templates/exemples de conf
  * make update (après git pull)
  * remplissage via ldap
  * installation de dev
  * retirer le binaire serveur de /usr/local/bin/
  * Modulariser le code (client.py devient gros)
  * renommer en "cpasswords" ? (aka common passwords :p)
+ * internationalisation
+ * annotation des dates de dernières màj et cie
 diff --git a/client.py b/client.py
 index 6ba2a6e..6486e11 100755
 --- a/client.py

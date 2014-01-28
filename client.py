@@ -736,7 +736,7 @@ Enregistrez le fichier vide pour annuler.\n"""
     
     annotations += u"""Ce fichier sera chiffré pour les rôles suivants :\n%s\n
 C'est-à-dire pour les utilisateurs suivants :\n%s""" % (
-           ', '.join(passfile['roles']),
+           ', '.join(new_roles),
            '\n'.join(' %s' % rec for rec in get_dest_of_roles(options, new_roles))
         )
     
