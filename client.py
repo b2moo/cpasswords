@@ -92,6 +92,8 @@ def gpg(options, command, args=None):
     else:
         stderr = subprocess.PIPE
         full_command.extend(['--debug-level=1'])
+    if options.verbose:
+        print(" ".join(full_command))
     proc = subprocess.Popen(full_command,
                             stdin = subprocess.PIPE,
                             stdout = subprocess.PIPE,
@@ -171,7 +173,15 @@ def parse_keys(gpgout, debug=False):
     current_sub = init_value
     for line in iter(gpgout.readline, ''):
         # La doc dit que l'output est en UTF-8 «regardless of any --display-charset setting»
-        line = line.decode("utf-8")
+        try:
+            line = line.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                line = line.decode("iso8859-1")
+            except UnicodeDecodeError:
+                line = line.decode("iso8859-1", "ignore")
+                if not options.quiet:
+                    print("gpg raconte de la merde, c'est ni de l'ISO-8859-1 ni de l'UTF-8, je droppe, ça risque de foirer plus tard.", sys.stderr)
         line = line.split(":")
         field = line[0]
         if field in GPG_PARSERS.keys():
