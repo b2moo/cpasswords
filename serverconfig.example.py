@@ -31,7 +31,7 @@ KEYS = {
     u'becue': (u'becue@crans.org', u'9AE04D986400E3B67528F4930D442664194974E2'),
     u'blockelet': (u'blockelet@crans.org', u'550A057BC913EA4637D250495314C173AF087A52'),
     u'boilard': (u'boilard@crans.org', u'E73A648AAB5E81BE38038350C1690AB9C39EB6F4'),
-    u'cauderlier': (u'cauderlier@crans.org', None),
+    u'cauderlier': (u'cauderlier@crans.org', u'4D302A566C2956334DF6AD8E1B199227E5ABC502'),
     u'chambart': (u'pierre.chambart@crans.org', u'085D0DFB66EAF9448C42979C43680A46F2530FCE'),
     u'dandrimont': (u'nicolas.dandrimont@crans.org', u'791F12396630DD71FD364375B8E5087766475AAF'),
     u'dimino': (u'jdimino@dptinfo.ens-cachan.fr', u'2C938EAC93A16F8129F807C81E8A30532127F85A'),
