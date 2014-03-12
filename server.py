@@ -41,6 +41,8 @@ def validate(roles, mode='r'):
 
 def getpath(filename, backup=False):
     """Récupère le chemin du fichier ``filename``"""
+    assert(isinstance(filename, unicode))
+    filename = filename.encode('utf-8')
     return os.path.join(serverconfig.STORE, '%s.%s' % (filename, 'bak' if backup else 'json'))
 
 def writefile(filename, contents):
@@ -140,7 +142,8 @@ def listfiles():
     files = {}
     for filename in filenames:
         file_dict = json.loads(open(filename).read())
-        files[filename[:-5]] = file_dict["roles"]
+        fname = filename[:-5].decode('utf-8')
+        files[fname] = file_dict["roles"]
     return files
 
 @server_command('getfile')

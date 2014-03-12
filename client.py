@@ -961,6 +961,7 @@ if __name__ == "__main__":
                         liste
             """)
     parser.add_argument('fname', nargs='?', default=None,
+        type=lambda x: x.decode('utf-8'),
         help="Nom du fichier à afficher")
     
     # On parse les options fournies en commandline
